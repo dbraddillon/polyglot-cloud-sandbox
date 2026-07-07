@@ -1,8 +1,12 @@
-# floci-java-sandbox
+# polyglot-cloud-sandbox
 
 General sandbox for Java microservice + IaC experiments, deployed locally against
 [Floci](https://floci.io) (a local AWS/Azure/GCP emulator) instead of real cloud accounts.
 Each experiment is a self-contained **sample**; nothing here is meant to run in production.
+
+The author is a longtime C#/.NET engineer picking up Java for a new role — see "Java comment
+policy" below. If that's also your background, the inline comments in the Java code are meant
+to make this navigable without needing to learn Java from scratch first.
 
 ## Layout
 
@@ -27,8 +31,8 @@ tangling into one growing app.
 
 Copy `samples/hello-api/` as the template, then:
 1. Rename the sample directory (`samples/<new-name>/`).
-2. Repackage the Java code: `dev.dillon.sandbox.<newname>` for the app,
-   `dev.dillon.sandbox.<newname>.infra` for the Pulumi program — keeps every sample's
+2. Repackage the Java code: `dev.sandbox.lab.<newname>` for the app,
+   `dev.sandbox.lab.<newname>.infra` for the Pulumi program — keeps every sample's
    package space isolated so nothing collides if code ever gets copy-pasted between them.
 3. Update both `pom.xml` groupIds and the infra `pom.xml`'s `<mainClass>` to match.
 4. Update `infra/Pulumi.yaml` `name:` to the new sample name (each sample = its own Pulumi
@@ -45,24 +49,28 @@ Copy `samples/hello-api/` as the template, then:
 - **Pulumi state is local per-sample, not Pulumi Cloud.** `PULUMI_BACKEND_URL=file://.../infra/.pulumi-state`
   with an empty `PULUMI_CONFIG_PASSPHRASE`, set per-command in `deploy.sh`/`destroy.sh` —
   deliberately *not* `pulumi login`, which would flip the global CLI default backend for every
-  other Pulumi project on this machine (otherwise logged into Pulumi Cloud as `braddillon`).
-  The state dir doesn't exist until first deploy; `deploy.sh` `mkdir -p`s it.
+  other Pulumi project on the machine running this. The state dir doesn't exist until first
+  deploy; `deploy.sh` `mkdir -p`s it.
 - **AWS-shaped outputs lie about being resolvable locally.** Things like API Gateway's
   `apiUrl` render as real `*.execute-api.*.amazonaws.com` hostnames, but Floci doesn't do
   subdomain-based routing — you need the emulator's path-based route instead (for API
   Gateway: `http://localhost:4566/restapis/<api-id>/$default/_user_request_/<route>`; other
   services likely have their own local-invoke pattern worth checking similarly).
-- **Floci's container lifecycle is machine-wide, not per-sample.** `~/floci-sandbox/start.sh` /
-  `stop.sh` manage the actual Colima + Floci container and its persisted emulator state
-  (`~/floci-sandbox/data/`) — shared across every sample/project on this machine that uses
+- **Floci's container lifecycle is machine-wide, not per-sample.** A separate pair of scripts
+  (`~/floci-sandbox/start.sh` / `stop.sh` on the author's machine — adjust the path in
+  `deploy.sh` if you're setting this up elsewhere) manage the actual Colima + Floci container
+  and its persisted emulator state, shared across every project on that machine that uses
   Floci. `deploy.sh` calls `start.sh` automatically if Floci isn't already running.
 
 ## Java comment policy
 
-See the "Java Learning Mode" section in the global `~/.claude/CLAUDE.md` — light inline
-comments calling out C#/.NET parallels apply to all Java code in this repo while that's active.
+Java code in this repo carries light inline comments calling out the C#/.NET parallel for a
+given construct where it's genuinely useful — an interface default method, a builder replacing
+C#'s object initializers, `Optional` vs. nullable references, checked exceptions, that kind of
+thing. Not every line, and not where the parallel is trivial (`if`, `for`) — just the spots
+where Java and C# diverge enough to trip someone up coming from one to the other.
 
 ## Prerequisites
 
-JDK 21, Maven, Pulumi CLI, Floci CLI, Docker (via Colima) — all already installed/configured
-on this machine as of 2026-07-07.
+JDK 21, Maven, Pulumi CLI, Floci CLI, Docker (Floci just needs a working Docker daemon —
+Colima, Docker Desktop, whatever).

@@ -1,4 +1,4 @@
-package dev.dillon.sandbox.helloapi;
+package dev.sandbox.lab.helloapi;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;

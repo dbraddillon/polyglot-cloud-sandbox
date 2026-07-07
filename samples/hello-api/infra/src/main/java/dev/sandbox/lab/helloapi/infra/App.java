@@ -1,4 +1,4 @@
-package dev.dillon.sandbox.helloapi.infra;
+package dev.sandbox.lab.helloapi.infra;
 
 import com.pulumi.Pulumi;
 import com.pulumi.asset.FileArchive;
@@ -51,7 +51,7 @@ public class App {
 
             var handler = new Function("helloHandler", FunctionArgs.builder()
                     .code(new FileArchive("../app/target/app.jar"))
-                    .handler("dev.dillon.sandbox.helloapi.Handler::handleRequest")
+                    .handler("dev.sandbox.lab.helloapi.Handler::handleRequest")
                     .runtime(Runtime.Java21)
                     .role(lambdaRole.arn())
                     .timeout(15)
