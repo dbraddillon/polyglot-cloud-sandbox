@@ -1,5 +1,5 @@
 target/
-infra/.pulumi-state/
+.pulumi-state/
 *.iml
 .idea/
 dependency-reduced-pom.xml

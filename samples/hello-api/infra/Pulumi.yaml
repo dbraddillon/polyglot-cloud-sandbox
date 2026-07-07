@@ -1,0 +1,7 @@
+name: hello-api
+description: Sample - Java Lambda + HTTP API Gateway, deployed to Floci
+runtime: java
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: aws-java

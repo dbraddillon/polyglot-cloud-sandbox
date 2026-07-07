@@ -1,60 +1,66 @@
 # floci-java-sandbox
 
-Sandbox for a Java-only local AWS workflow: a Lambda behind API Gateway HTTP API,
-infrastructure written in Java with Pulumi, deployed to [Floci](https://floci.io)
-(a local AWS emulator, similar in spirit to LocalStack) instead of real AWS.
+General sandbox for Java microservice + IaC experiments, deployed locally against
+[Floci](https://floci.io) (a local AWS/Azure/GCP emulator) instead of real cloud accounts.
+Each experiment is a self-contained **sample**; nothing here is meant to run in production.
 
-Not a git repo yet (`git init` not run) — ask before doing that; it's a real decision
-about remotes/naming, not just plumbing.
-
-## Structure
-
-- `app/` — the Lambda. `Handler.java` implements `RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse>`,
-  returns `{"message": "hello, <name>", ...}`. Built into a shaded jar (`maven-shade-plugin`)
-  at `app/target/app.jar` — that's the artifact Pulumi deploys.
-- `infra/` — Pulumi program in Java (`App.java`). Provisions IAM role, the Lambda function
-  (pointing at `../app/target/app.jar`), and an HTTP API Gateway (`GET /hello`) wired to it.
-
-## Deploying
+## Layout
 
 ```
-./deploy.sh    # build the jar, start Floci if needed, pulumi up, curl the endpoint
-./destroy.sh   # tear down the Pulumi stack
+samples/
+  hello-api/          # first sample — Lambda + HTTP API Gateway
+    app/               Java service code (its own Maven module)
+    infra/             Pulumi program in Java provisioning that service
+    deploy.sh          build + pulumi up + curl the result
+    destroy.sh         pulumi destroy
+    README.md          sample-specific notes/gotchas
+  <next-sample>/       same shape
 ```
 
-Single-command by design — don't hand-run the underlying `mvn`/`pulumi`/`curl` steps unless
-debugging; `deploy.sh` is the source of truth for the env vars this all depends on.
+Every sample is independent: its own Maven module(s), its own Pulumi project/stack, its
+own local Pulumi state (`infra/.pulumi-state/`, gitignored), its own `deploy.sh`/`destroy.sh`.
+No shared root build — run each sample from inside its own directory. This is deliberate:
+the point of this repo is trying different Java-on-AWS patterns side by side without them
+tangling into one growing app.
 
-## How this differs from a real AWS deploy
+## Adding a new sample
 
-- **Fake creds, local endpoint.** Floci exposes a unified endpoint at `http://localhost:4566`.
-  The Pulumi AWS provider (v7.x here) picks up `AWS_ENDPOINT_URL` / `AWS_ACCESS_KEY_ID=test` /
-  `AWS_SECRET_ACCESS_KEY=test` from the environment automatically — no `Provider`/`endpoints`
-  block needed in `App.java`. `deploy.sh` sets these; nothing else to configure.
-- **Pulumi state is local, not Pulumi Cloud.** `PULUMI_BACKEND_URL=file://infra/.pulumi-state`
-  with an empty `PULUMI_CONFIG_PASSPHRASE`, set per-command in the scripts — deliberately *not*
-  `pulumi login`, which would change the global CLI default backend for every other Pulumi
-  project on this machine. The `dev` stack lives entirely in `infra/.pulumi-state/` (gitignored).
-- **The `apiUrl` Pulumi output is a lie, locally.** It renders as a real-looking
-  `https://<api-id>.execute-api.us-east-1.amazonaws.com/hello` URL, but Floci doesn't do
-  subdomain-based API Gateway routing, so that host doesn't resolve to anything useful.
-  The actual local invoke pattern is path-based:
-  ```
-  http://localhost:4566/restapis/<api-id>/$default/_user_request_/hello
-  ```
-  `deploy.sh` extracts the api-id from the Pulumi output and curls the real local URL for you.
+Copy `samples/hello-api/` as the template, then:
+1. Rename the sample directory (`samples/<new-name>/`).
+2. Repackage the Java code: `dev.dillon.sandbox.<newname>` for the app,
+   `dev.dillon.sandbox.<newname>.infra` for the Pulumi program — keeps every sample's
+   package space isolated so nothing collides if code ever gets copy-pasted between them.
+3. Update both `pom.xml` groupIds and the infra `pom.xml`'s `<mainClass>` to match.
+4. Update `infra/Pulumi.yaml` `name:` to the new sample name (each sample = its own Pulumi
+   project) and fix the `.handler(...)` string in `App.java` to the new package.
+5. `deploy.sh`/`destroy.sh` need no path changes if copied as-is — they're written relative
+   to their own directory (`cd "$(dirname "$0")"`), not the repo root.
 
-## Floci itself
+## Common gotchas across every sample (from building `hello-api`)
 
-- CLI installed via Homebrew (`floci`), backed by a Docker container on Colima.
-- This project doesn't manage the Floci container lifecycle directly — `~/floci-sandbox/start.sh`
-  and `stop.sh` do that (start Colima if needed, link the docker socket, `floci start --persist
-  ~/floci-sandbox/data`). `deploy.sh` calls `start.sh` automatically if Floci isn't already running.
-- `~/floci-sandbox/data/` holds Floci's persisted emulator state (S3, IAM, Lambda, API Gateway,
-  RDS, etc., as JSON) — shared across whatever other Floci-based sandboxes exist on this machine,
-  not specific to this repo. Reset by stopping Floci and editing/clearing those files.
-- Useful commands: `floci status`, `floci doctor`, `floci aws env` (prints the env vars above),
-  `aws --profile floci <service> <command>` (profile is preconfigured in `~/.aws/config`/`credentials`).
+- **Floci gives fake creds + one unified endpoint.** `AWS_ENDPOINT_URL=http://localhost:4566`,
+  `AWS_ACCESS_KEY_ID=test`, `AWS_SECRET_ACCESS_KEY=test`, `AWS_DEFAULT_REGION=us-east-1`. The
+  Pulumi AWS provider (v7.x) picks these up from the environment automatically — no
+  `Provider`/`endpoints` block needed in the Pulumi program.
+- **Pulumi state is local per-sample, not Pulumi Cloud.** `PULUMI_BACKEND_URL=file://.../infra/.pulumi-state`
+  with an empty `PULUMI_CONFIG_PASSPHRASE`, set per-command in `deploy.sh`/`destroy.sh` —
+  deliberately *not* `pulumi login`, which would flip the global CLI default backend for every
+  other Pulumi project on this machine (otherwise logged into Pulumi Cloud as `braddillon`).
+  The state dir doesn't exist until first deploy; `deploy.sh` `mkdir -p`s it.
+- **AWS-shaped outputs lie about being resolvable locally.** Things like API Gateway's
+  `apiUrl` render as real `*.execute-api.*.amazonaws.com` hostnames, but Floci doesn't do
+  subdomain-based routing — you need the emulator's path-based route instead (for API
+  Gateway: `http://localhost:4566/restapis/<api-id>/$default/_user_request_/<route>`; other
+  services likely have their own local-invoke pattern worth checking similarly).
+- **Floci's container lifecycle is machine-wide, not per-sample.** `~/floci-sandbox/start.sh` /
+  `stop.sh` manage the actual Colima + Floci container and its persisted emulator state
+  (`~/floci-sandbox/data/`) — shared across every sample/project on this machine that uses
+  Floci. `deploy.sh` calls `start.sh` automatically if Floci isn't already running.
+
+## Java comment policy
+
+See the "Java Learning Mode" section in the global `~/.claude/CLAUDE.md` — light inline
+comments calling out C#/.NET parallels apply to all Java code in this repo while that's active.
 
 ## Prerequisites
 

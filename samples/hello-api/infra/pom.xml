@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>dev.dillon.sandbox</groupId>
+    <groupId>dev.dillon.sandbox.helloapi</groupId>
     <artifactId>infra</artifactId>
     <version>1.0.0</version>
 
@@ -13,7 +13,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <maven.compiler.release>21</maven.compiler.release>
-        <mainClass>dev.dillon.sandbox.infra.App</mainClass>
+        <mainClass>dev.dillon.sandbox.helloapi.infra.App</mainClass>
         <mainArgs/>
     </properties>
 

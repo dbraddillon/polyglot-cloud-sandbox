@@ -1,7 +1,0 @@
-name: floci-java-sandbox
-description: Floci local AWS sandbox - Java Lambda + API Gateway
-runtime: java
-config:
-  pulumi:tags:
-    value:
-      pulumi:template: aws-java
