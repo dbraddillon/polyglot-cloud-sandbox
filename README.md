@@ -1,8 +1,8 @@
 # polyglot-cloud-sandbox
 
-A hands-on lab for picking up Java — and the cloud-native tooling around it — coming from
-~18 years of C#/.NET. Each sample builds something as if it were shipping to production (a
-Lambda, a containerized API, a search index, a message queue), but runs entirely on a laptop:
+A hands-on lab for Java microservice patterns and the cloud-native tooling around them. Each
+sample builds something as if it were shipping to production (a Lambda, a containerized API, a
+search index, a message queue), but runs entirely on a laptop:
 
 - **Java** for the service code itself
 - **[Pulumi](https://www.pulumi.com/)**, written in Java, for the infrastructure — no YAML/HCL,
@@ -11,11 +11,10 @@ Lambda, a containerized API, a search index, a message queue), but runs entirely
   **[Floci](https://floci.io)** (an AWS/Azure/GCP emulator) for AWS-shaped samples, or plain
   local Docker for anything that's just "a service in a container," same as you'd run it in k8s
 
-Where it's useful, the Java code carries lightweight inline comments pointing out the C#/.NET
-parallel for a given construct — an interface with a default method, a builder replacing C#'s
-object initializers, `Optional` vs. nullable references, that kind of thing. If you know C#
-and are curious what Java (or Pulumi, or Spring, or a LocalStack-style local cloud emulator)
-looks like day to day, this repo is written with you in mind too.
+Where it's useful, the Java code carries light inline comments comparing a construct to its
+closest C#/.NET equivalent — an interface with a default method, a builder replacing C#'s
+object initializers, `Optional` vs. nullable references, that kind of thing. Useful if you're
+coming to Java from a C# background, or just curious how the two ecosystems compare.
 
 The sample domains share a light, made-up health-insurance theme (claims, plans, care tasks) —
 just enough to read as *something real* instead of another `hello-world`/`orders` tutorial demo,

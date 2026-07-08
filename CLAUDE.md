@@ -12,9 +12,8 @@ production. Two deploy shapes exist side by side, chosen per-sample based on wha
   (OpenSearch — Floci can run this too, but has a bug that makes Pulumi's AWS provider hang
   forever, see the gotchas below).
 
-The author is a longtime C#/.NET engineer picking up Java for a new role — see "Java comment
-policy" below. If that's also your background, the inline comments in the Java code are meant
-to make this navigable without needing to learn Java from scratch first.
+See "Java comment policy" below — the inline comments in the Java code compare constructs to
+their closest C#/.NET equivalents, useful for readers coming from that background.
 
 **Sample domains share a light health-insurance theme** (claims, plans, care tasks, benefits
 articles) — deliberately generic, no real company/product/industry specifics, just enough to
@@ -92,10 +91,10 @@ Copy whichever existing sample is the closer match, then:
   entirely by design, unreachable from anything not on Floci's internal Docker network
   (claims-api works around this the same way — plain Postgres via Docker, no Floci).
 - **Floci's container lifecycle is machine-wide, not per-sample.** A separate pair of scripts
-  (`~/floci-sandbox/start.sh` / `stop.sh` on the author's machine — adjust the path in
-  `deploy.sh` if you're setting this up elsewhere) manage the actual Colima + Floci container
-  and its persisted emulator state, shared across every project on that machine that uses
-  Floci. `deploy.sh` calls `start.sh` automatically if Floci isn't already running.
+  (`~/floci-sandbox/start.sh` / `stop.sh` — adjust the path in `deploy.sh` if you're setting
+  this up elsewhere) manage the actual Colima + Floci container and its persisted emulator
+  state, shared across every project on the machine that uses Floci. `deploy.sh` calls
+  `start.sh` automatically if Floci isn't already running.
 
 **Docker-based samples:**
 - **Pulumi's Docker `Image` resource needs `skipPush(true)` for a local-only build.** Without
