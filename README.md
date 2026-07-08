@@ -2,8 +2,7 @@
 
 A hands-on lab for picking up Java — and the cloud-native tooling around it — coming from
 ~18 years of C#/.NET. Each sample builds something as if it were shipping to production (a
-Lambda, a containerized API, eventually something backed by Redis), but runs entirely on a
-laptop:
+Lambda, a containerized API, a search index, a message queue), but runs entirely on a laptop:
 
 - **Java** for the service code itself
 - **[Pulumi](https://www.pulumi.com/)**, written in Java, for the infrastructure — no YAML/HCL,
@@ -25,12 +24,20 @@ looks like day to day, this repo is written with you in mind too.
   Pulumi program → Floci.
 - [`samples/task-api`](samples/task-api) — a small Spring Boot REST API (task management, a
   handful of endpoints, a real service layer with one business rule), containerized and run
-  via Pulumi's Docker provider. The "how you'd actually build and ship a microservice" sample —
-  closer to deploying an ASP.NET Core Web API than to a serverless function. No Floci here;
-  see that sample's README for why, and for the path to a real Kubernetes deploy later.
+  via Pulumi's Docker provider. Closer to deploying an ASP.NET Core Web API than to a serverless
+  function — no Floci here, see that sample's README for why.
+- [`samples/search-api`](samples/search-api) — full-text search over a real OpenSearch engine,
+  via Spring's `RestClient` (no OpenSearch client library needed). Also documents a real Floci
+  limitation found while building it.
+- [`samples/catalog-api`](samples/catalog-api) — CRUD over a real DynamoDB table (via Floci),
+  using the AWS SDK v2 "enhanced" client for annotation-driven object mapping.
+- [`samples/orders-api`](samples/orders-api) — Spring Data JPA + a real Postgres, relational
+  modeling with a `@OneToMany` order/line-item aggregate. Documents two real bugs found and
+  fixed while building it (a classic Hibernate lazy-loading trap, and a Pulumi Docker gotcha).
+- [`samples/events-api`](samples/events-api) — the async messaging pattern: an SNS topic fanning
+  out to an SQS queue, a publisher endpoint, and an independent background consumer.
 
-More samples get added here as they're built — the plan includes something Redis-backed next,
-plus whatever else turns out to be a useful, small, self-contained example of the stack.
+More samples get added here as they're built — Redis is a likely future addition.
 
 ## Layout
 
@@ -41,7 +48,7 @@ project/stack, its own `deploy.sh`/`destroy.sh`. Nothing is shared at the repo r
 ## Quickstart
 
 ```
-cd samples/hello-api      # or samples/task-api
+cd samples/<sample-name>
 ./deploy.sh
 ./destroy.sh
 ```
@@ -53,4 +60,5 @@ Each sample's README has the specifics — what it deploys to, what to expect, w
 - JDK 21, Maven
 - [Pulumi CLI](https://www.pulumi.com/docs/install/)
 - Docker (samples here assume Colima on macOS, but any local Docker daemon works)
-- [Floci CLI](https://floci.io) — only needed for AWS-shaped samples like `hello-api`
+- [Floci CLI](https://floci.io) — only needed for the AWS-shaped samples (`hello-api`,
+  `catalog-api`, `search-api`'s original design, `events-api`)

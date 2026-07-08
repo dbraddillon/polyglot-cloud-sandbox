@@ -1,0 +1,5 @@
+server:
+  port: 8081
+
+opensearch:
+  base-url: ${OPENSEARCH_BASE_URL:http://localhost:9200}

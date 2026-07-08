@@ -34,7 +34,11 @@ public class App {
                     .build());
 
             var container = new Container("taskApiContainer", ContainerArgs.builder()
-                    .image(image.imageName())
+                    // repoDigest, not imageName: imageName is the mutable tag ("task-api:local")
+                    // - rebuilding produces new content under the same tag, so Pulumi sees no
+                    // diff on this field and won't recreate the container. repoDigest changes
+                    // with the content, so a rebuild actually triggers a container replace.
+                    .image(image.repoDigest())
                     .ports(ContainerPortArgs.builder()
                             .internal(8080)
                             .external(8080)

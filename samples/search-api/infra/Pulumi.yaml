@@ -1,0 +1,3 @@
+name: search-api
+description: Sample - Spring Boot search API backed by a real OpenSearch container run via Pulumi's Docker provider
+runtime: java

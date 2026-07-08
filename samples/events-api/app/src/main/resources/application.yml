@@ -1,0 +1,6 @@
+server:
+  port: 8084
+
+events:
+  topic-arn: ${EVENTS_TOPIC_ARN:}
+  queue-url: ${EVENTS_QUEUE_URL:}

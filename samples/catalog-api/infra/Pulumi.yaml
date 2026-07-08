@@ -1,0 +1,3 @@
+name: catalog-api
+description: Sample - Spring Boot catalog API backed by a real DynamoDB table emulated by Floci
+runtime: java

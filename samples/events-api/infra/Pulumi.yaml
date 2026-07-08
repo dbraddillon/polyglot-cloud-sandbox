@@ -1,0 +1,3 @@
+name: events-api
+description: Sample - Spring Boot async messaging (SNS -> SQS fanout) emulated by Floci
+runtime: java
