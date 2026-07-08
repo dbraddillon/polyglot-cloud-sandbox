@@ -1,0 +1,3 @@
+name: task-api
+description: Sample - Spring Boot REST API, containerized and run locally via Pulumi's Docker provider
+runtime: java
