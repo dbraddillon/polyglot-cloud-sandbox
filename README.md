@@ -17,27 +17,33 @@ object initializers, `Optional` vs. nullable references, that kind of thing. If 
 and are curious what Java (or Pulumi, or Spring, or a LocalStack-style local cloud emulator)
 looks like day to day, this repo is written with you in mind too.
 
+The sample domains share a light, made-up health-insurance theme (claims, plans, care tasks) —
+just enough to read as *something real* instead of another `hello-world`/`orders` tutorial demo,
+without leaning on any actual company, product, or industry-specific detail. Not the point of
+the repo; just a coherent backdrop for the Java/Pulumi/cloud-emulation patterns that are.
+
 ## What's here
 
 - [`samples/hello-api`](samples/hello-api) — a Lambda behind an HTTP API Gateway, returns a
   JSON greeting. Smallest possible slice through the AWS-shaped path: Java service → Java
-  Pulumi program → Floci.
-- [`samples/task-api`](samples/task-api) — a small Spring Boot REST API (task management, a
+  Pulumi program → Floci. Kept deliberately generic — the neutral quickstart template.
+- [`samples/task-api`](samples/task-api) — a small Spring Boot REST API (member care tasks, a
   handful of endpoints, a real service layer with one business rule), containerized and run
   via Pulumi's Docker provider. Closer to deploying an ASP.NET Core Web API than to a serverless
   function — no Floci here, see that sample's README for why.
-- [`samples/search-api`](samples/search-api) — full-text search over a real OpenSearch engine,
-  via Spring's `RestClient` (no OpenSearch client library needed). Also documents a real Floci
-  limitation found while building it.
-- [`samples/catalog-api`](samples/catalog-api) — CRUD over a real DynamoDB table (via Floci),
-  using the AWS SDK v2 "enhanced" client for annotation-driven object mapping.
-- [`samples/orders-api`](samples/orders-api) — Spring Data JPA + a real Postgres, relational
-  modeling with a `@OneToMany` order/line-item aggregate. Documents two real bugs found and
+- [`samples/search-api`](samples/search-api) — full-text search over a real OpenSearch engine
+  (indexing health-guidance articles), via Spring's `RestClient` (no client library needed).
+  Also documents a real Floci limitation found while building it.
+- [`samples/catalog-api`](samples/catalog-api) — CRUD over a real DynamoDB table (via Floci) —
+  an insurance plan catalog — using the AWS SDK v2 "enhanced" client for annotation-driven
+  object mapping.
+- [`samples/claims-api`](samples/claims-api) — Spring Data JPA + a real Postgres, relational
+  modeling with a `@OneToMany` claim/line-item aggregate. Documents two real bugs found and
   fixed while building it (a classic Hibernate lazy-loading trap, and a Pulumi Docker gotcha).
 - [`samples/events-api`](samples/events-api) — the async messaging pattern: an SNS topic fanning
   out to an SQS queue, a publisher endpoint, and an independent background consumer.
 
-More samples get added here as they're built — Redis is a likely future addition.
+More samples get added here as they're built.
 
 ## Layout
 
@@ -61,4 +67,4 @@ Each sample's README has the specifics — what it deploys to, what to expect, w
 - [Pulumi CLI](https://www.pulumi.com/docs/install/)
 - Docker (samples here assume Colima on macOS, but any local Docker daemon works)
 - [Floci CLI](https://floci.io) — only needed for the AWS-shaped samples (`hello-api`,
-  `catalog-api`, `search-api`'s original design, `events-api`)
+  `catalog-api`, `events-api`)

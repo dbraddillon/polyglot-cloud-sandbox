@@ -15,7 +15,7 @@ import com.pulumi.docker.inputs.ContainerPortArgs;
 // not a Pulumi or Java issue.
 //
 // Rather than fight it, this runs the same OpenSearch image directly via Pulumi's Docker
-// provider instead - the exact pattern orders-api already uses for Postgres instead of Floci's
+// provider instead - the exact pattern claims-api already uses for Postgres instead of Floci's
 // RDS emulation. Same engine, same REST API, no AWS-shaped control-plane in the way.
 public class App {
     public static void main(String[] args) {

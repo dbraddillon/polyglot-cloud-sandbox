@@ -23,7 +23,7 @@ public class SearchService {
         String id = UUID.randomUUID().toString();
         // PUT .../documents/_doc/{id} - OpenSearch (like Elasticsearch) auto-creates the index
         // and infers a field mapping from the first document it sees ("dynamic mapping"). No
-        // schema migration step, unlike the orders-api sample's Postgres/JPA setup - the
+        // schema migration step, unlike the claims-api sample's Postgres/JPA setup - the
         // tradeoff is you find out about type mismatches at query time, not at deploy time.
         client.put()
                 .uri("/{index}/_doc/{id}", INDEX, id)

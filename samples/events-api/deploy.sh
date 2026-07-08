@@ -61,7 +61,7 @@ done
 echo
 echo "Publishing an event:"
 PUBLISHED=$(curl -s -X POST http://localhost:8084/events -H "Content-Type: application/json" \
-  -d '{"type":"order.placed","payload":"order-123"}')
+  -d '{"type":"claim.submitted","payload":"claim-123"}')
 echo "$PUBLISHED"
 EVENT_ID=$(echo "$PUBLISHED" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
 

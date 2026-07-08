@@ -1,8 +1,11 @@
 # task-api
 
 A small Spring Boot REST API — the "this is what an actual enterprise service looks like"
-sample, as opposed to `hello-api`'s one-file Lambda. Task management: create tasks, move them
-through a status workflow, list/get/delete them.
+sample, as opposed to `hello-api`'s one-file Lambda. Task management: create tasks (e.g. a
+member's care to-dos — schedule a checkup, refill a prescription), move them through a status
+workflow, list/get/delete them. The domain is deliberately generic under the hood (`title`,
+`status`) — it's just a to-do list — but the example data leans lightly on a health-insurance
+member-services theme, same as the rest of this repo's samples.
 
 ## Endpoints
 

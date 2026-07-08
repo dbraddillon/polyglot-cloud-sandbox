@@ -1,8 +1,8 @@
 # events-api
 
-A Spring Boot service demonstrating the async messaging pattern called out explicitly in the
-target job posting: an SNS topic fanning out to an SQS queue, a REST endpoint that publishes,
-and a background poller that consumes independently. No request ever waits on processing.
+A Spring Boot service demonstrating the async messaging pattern: an SNS topic fanning out to an
+SQS queue, a REST endpoint that publishes, and a background poller that consumes independently.
+No request ever waits on processing.
 
 ## Endpoints
 
@@ -29,7 +29,7 @@ POST /events → EventPublisher → SNS topic → (fanout) → SQS queue → Eve
 - **Eventual consistency is real, not simulated**: `GET /events/{id}` immediately after
   `POST /events` can 404 if the poller hasn't run yet. `deploy.sh` retries for this reason. This
   is the actual behavior of the pattern, not a sandbox artifact - it's exactly what "asynchronous
-  messaging" in the job posting means in practice.
+  messaging" means in practice.
 
 ## Infra: real IaC even where Floci might not need it
 

@@ -2,31 +2,32 @@
 
 A Spring Boot CRUD API over a real DynamoDB table (via Floci), using the AWS SDK v2 "enhanced"
 DynamoDB client — annotation-driven object mapping, the DynamoDB equivalent of what an ORM
-gives you over raw JDBC/ADO.NET. Contrast with orders-api's relational modeling: here there's no
+gives you over raw JDBC/ADO.NET. Contrast with claims-api's relational modeling: here there's no
 schema beyond the partition key, and listing everything is a `scan` (cost scales with table
-size), not a cheap `SELECT *`.
+size), not a cheap `SELECT *`. Domain: an insurance plan catalog (originally a generic
+"products" example, renamed once the whole set of samples got a light, coherent theme).
 
 ## Endpoints
 
-| Method | Path             | Notes                                    |
-|--------|------------------|--------------------------------------------|
-| GET    | `/products`      | full table scan - see the repository comment |
-| GET    | `/products/{id}` | 404 if missing                             |
-| POST   | `/products`      | `{"name": "...", "price": 49.99}`, price must be positive |
-| PUT    | `/products/{id}` | full replace                               |
-| DELETE | `/products/{id}` | 204                                         |
+| Method | Path          | Notes                                                       |
+|--------|---------------|---------------------------------------------------------------|
+| GET    | `/plans`      | full table scan - see the repository comment                  |
+| GET    | `/plans/{id}` | 404 if missing                                                 |
+| POST   | `/plans`      | `{"name": "...", "monthlyPremium": 399.00}`, premium must be positive |
+| PUT    | `/plans/{id}` | full replace                                                   |
+| DELETE | `/plans/{id}` | 204                                                             |
 
 ## Structure
 
 ```
 app/
-  domain/Product.java        @DynamoDbBean - the enhanced client's answer to a JPA @Entity
-  config/DynamoDbConfig.java DynamoDbClient/DynamoDbEnhancedClient beans, no Floci-specific code
-  repository/                interface + DynamoProductRepository (hand-written, unlike
-                              orders-api's Spring Data JPA repository - no Spring Data module
-                              does this part for DynamoDB the way it does for JPA)
-  service/, web/              same layering as the other samples
-infra/                        Pulumi program: one aws.dynamodb.Table, via Floci
+  domain/Plan.java            @DynamoDbBean - the enhanced client's answer to a JPA @Entity
+  config/DynamoDbConfig.java  DynamoDbClient/DynamoDbEnhancedClient beans, no Floci-specific code
+  repository/                 interface + DynamoPlanRepository (hand-written, unlike
+                               claims-api's Spring Data JPA repository - no Spring Data module
+                               does this part for DynamoDB the way it does for JPA)
+  service/, web/               same layering as the other samples
+infra/                         Pulumi program: one aws.dynamodb.Table, via Floci
 ```
 
 ## Why Floci works fine here (unlike search-api's first attempt)
@@ -48,7 +49,7 @@ find its region despite `AWS_DEFAULT_REGION` being set correctly everywhere else
 ## Running it
 
 ```
-./deploy.sh    # create the table, run the app, create/list a product
+./deploy.sh    # create the table, run the app, create/list a plan
 ./destroy.sh   # tear down the table; kills the app process too
 ```
 

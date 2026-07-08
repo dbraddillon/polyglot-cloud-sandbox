@@ -56,9 +56,9 @@ done
 echo
 echo "Indexing a document:"
 curl -s -X POST http://localhost:8081/documents -H "Content-Type: application/json" \
-  -d '{"title":"Pulumi in Java","body":"Infrastructure as actual code, not YAML"}'
+  -d '{"title":"Managing Type 2 Diabetes","body":"Guidance on diet, medication, and monitoring blood sugar"}'
 echo
 sleep 1
 echo "Searching for it:"
-curl -s "http://localhost:8081/documents/search?q=pulumi"
+curl -s "http://localhost:8081/documents/search?q=diabetes"
 echo

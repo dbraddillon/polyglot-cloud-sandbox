@@ -10,8 +10,8 @@ public class App {
         Pulumi.run(ctx -> {
             // Only the key attribute needs declaring up front - DynamoDB has no fixed schema
             // for anything else an item might carry, unlike a SQL table's column list.
-            var table = new Table("productsTable", TableArgs.builder()
-                    .name("products")
+            var table = new Table("plansTable", TableArgs.builder()
+                    .name("plans")
                     .billingMode("PAY_PER_REQUEST")
                     .hashKey("id")
                     .attributes(TableAttributeArgs.builder()

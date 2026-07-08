@@ -2,4 +2,4 @@ server:
   port: 8082
 
 catalog:
-  table-name: ${CATALOG_TABLE_NAME:products}
+  table-name: ${CATALOG_TABLE_NAME:plans}

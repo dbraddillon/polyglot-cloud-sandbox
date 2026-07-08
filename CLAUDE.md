@@ -8,7 +8,7 @@ production. Two deploy shapes exist side by side, chosen per-sample based on wha
   `hello-api` (Lambda + API Gateway), `catalog-api` (DynamoDB), `events-api` (SNS + SQS).
 - **Plain services** (a Spring Boot app, anything that's just "a container that listens on a
   port," or a piece of infra Floci can't reliably emulate) deploy via Pulumi's Docker provider
-  straight to the local Docker daemon — `task-api`, `orders-api` (Postgres), `search-api`
+  straight to the local Docker daemon — `task-api`, `claims-api` (Postgres), `search-api`
   (OpenSearch — Floci can run this too, but has a bug that makes Pulumi's AWS provider hang
   forever, see the gotchas below).
 
@@ -16,16 +16,23 @@ The author is a longtime C#/.NET engineer picking up Java for a new role — see
 policy" below. If that's also your background, the inline comments in the Java code are meant
 to make this navigable without needing to learn Java from scratch first.
 
+**Sample domains share a light health-insurance theme** (claims, plans, care tasks, benefits
+articles) — deliberately generic, no real company/product/industry specifics, just enough to
+read as something tangible instead of another `hello-world`/`orders` tutorial demo. `hello-api`
+is the one exception, kept fully neutral as the template/quickstart sample. When adding a new
+sample, a light nod to the theme in the domain naming is nice-to-have, not required — don't
+force it if the tech pattern being demonstrated doesn't lend itself to it.
+
 ## Layout
 
 ```
 samples/
-  hello-api/    Lambda + HTTP API Gateway, deployed to Floci
-  task-api/     Spring Boot REST API, containerized and run via local Docker (no Floci)
-  search-api/   Spring Boot + OpenSearch, run via local Docker (Floci's own emulation hangs)
-  catalog-api/  Spring Boot + DynamoDB, deployed to Floci
-  orders-api/   Spring Boot + Spring Data JPA + Postgres, both containerized via local Docker
-  events-api/   Spring Boot + SNS/SQS async messaging, deployed to Floci
+  hello-api/    Lambda + HTTP API Gateway, deployed to Floci (kept theme-neutral)
+  task-api/     Spring Boot REST API (member care tasks), local Docker (no Floci)
+  search-api/   Spring Boot + OpenSearch (health articles), local Docker (Floci's emulation hangs)
+  catalog-api/  Spring Boot + DynamoDB (insurance plans), deployed to Floci
+  claims-api/   Spring Boot + Spring Data JPA + Postgres (insurance claims), local Docker
+  events-api/   Spring Boot + SNS/SQS async messaging (claim/appointment events), deployed to Floci
   <next>/       same shape - pick whichever deploy story actually fits what you're building
 ```
 
@@ -83,7 +90,7 @@ Copy whichever existing sample is the closer match, then:
   OpenSearch image via Pulumi's Docker provider instead, bypassing Floci for that resource
   entirely). RDS's Postgres container is real and healthy but kept off the host network
   entirely by design, unreachable from anything not on Floci's internal Docker network
-  (orders-api works around this the same way — plain Postgres via Docker, no Floci).
+  (claims-api works around this the same way — plain Postgres via Docker, no Floci).
 - **Floci's container lifecycle is machine-wide, not per-sample.** A separate pair of scripts
   (`~/floci-sandbox/start.sh` / `stop.sh` on the author's machine — adjust the path in
   `deploy.sh` if you're setting this up elsewhere) manage the actual Colima + Floci container
@@ -100,19 +107,19 @@ Copy whichever existing sample is the closer match, then:
   `imageName()` is the mutable tag (`"task-api:local"`) — rebuilding produces new content under
   the same tag, so Pulumi sees no diff on that field and leaves the old container running
   untouched. `repoDigest()` changes whenever the content does, so a rebuild correctly triggers a
-  container replace. Found the hard way on orders-api: fixed a real bug, rebuilt, redeployed,
+  container replace. Found the hard way on claims-api: fixed a real bug, rebuilt, redeployed,
   and kept hitting the *old* code until this was fixed. `docker restart` doesn't help either —
   it reuses the already-extracted container, not the newly built image.
 - **`ImageArgs.builder()` has two same-named `.build(...)` methods.** One (takes a
   `DockerBuildArgs`) sets the build config; the other (no args) finalizes the builder itself.
   Resolved by Java overloading, but it reads strangely the first time.
 - **A user-defined `docker.Network` gives container-name DNS resolution; the default "bridge"
-  network doesn't.** orders-api's app reaches its Postgres container at hostname `orders-db`
+  network doesn't.** claims-api's app reaches its Postgres container at hostname `claims-db`
   only because both are attached to a Pulumi-created network — on the default network they'd
   only be reachable by IP.
 - **No "wait until healthy" dependency between containers.** The Terraform-bridged Docker
   provider Pulumi uses has nothing like docker-compose's `depends_on: condition:
-  service_healthy`. A dependent container (e.g. orders-api's app, which needs Postgres actually
+  service_healthy`. A dependent container (e.g. claims-api's app, which needs Postgres actually
   accepting connections, not just started) may crash on first boot and rely on `restart:
   unless-stopped` to self-heal a few seconds later. Same class of problem Kubernetes readiness
   probes exist to solve — left as-is and documented rather than engineered around, since it's a
@@ -122,7 +129,7 @@ Copy whichever existing sample is the closer match, then:
 - **`@OneToMany` defaults to `FetchType.LAZY`, and `spring.jpa.open-in-view: false` means the
   Hibernate session is gone by the time a controller serializes the response.** Accessing a
   lazy collection outside its original transaction throws `LazyInitializationException`. Fixed
-  in orders-api with `fetch = FetchType.EAGER` on the specific relationship that's always small
+  in claims-api with `fetch = FetchType.EAGER` on the specific relationship that's always small
   and always needed (not a blanket fix for every `@OneToMany`). EF Core's default is the
   opposite failure mode: unpopulated navigation properties are just silently empty, no
   exception, no lazy proxy, no session — arguably more dangerous since it doesn't crash.

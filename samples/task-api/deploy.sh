@@ -28,7 +28,7 @@ done
 echo "Task API running at http://localhost:8080/tasks"
 echo
 echo "Creating a task:"
-curl -s -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"try the sample"}'
+curl -s -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"Schedule annual wellness visit"}'
 echo
 echo "Listing tasks:"
 curl -s http://localhost:8080/tasks

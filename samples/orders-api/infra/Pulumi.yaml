@@ -1,3 +1,0 @@
-name: orders-api
-description: Sample - Spring Boot + JPA order service, its Postgres, both containerized via Pulumi's Docker provider
-runtime: java

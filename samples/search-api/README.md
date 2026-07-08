@@ -3,7 +3,10 @@
 A Spring Boot search API over a real OpenSearch engine — index documents, fetch one by id,
 full-text search across title and body. No OpenSearch client library: `RestClient`
 (Spring Framework 6.1+) talks straight to OpenSearch's plain HTTP/JSON REST API, the same way a
-lot of real projects do instead of pulling in the official client.
+lot of real projects do instead of pulling in the official client. The domain (`Document`:
+title + body) is deliberately generic — search really is generic — but `deploy.sh` indexes
+example content styled as health/benefits guidance articles, matching the light theme running
+through this repo's samples.
 
 ## Endpoints
 
@@ -29,7 +32,7 @@ issue, and not something a `CustomTimeouts` override actually fixes (it would ju
 `pulumi up` fail faster, not succeed).
 
 Rather than fight it, this sample runs the identical OpenSearch image directly via Pulumi's
-**Docker provider** instead — the same move `orders-api` already makes for Postgres instead of
+**Docker provider** instead — the same move `claims-api` already makes for Postgres instead of
 Floci's RDS emulation (which has its own, different limitation: it works, but keeps its
 container off the host network entirely). Same engine, same REST API, no AWS-shaped
 control-plane in the way.

@@ -52,16 +52,16 @@ echo $! > .run/app.pid
 
 echo "Waiting for the service to come up..."
 for i in $(seq 1 30); do
-  if curl -sf http://localhost:8082/products >/dev/null 2>&1; then
+  if curl -sf http://localhost:8082/plans >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
 
 echo
-echo "Creating a product:"
-curl -s -X POST http://localhost:8082/products -H "Content-Type: application/json" -d '{"name":"Keyboard","price":49.99}'
+echo "Creating a plan:"
+curl -s -X POST http://localhost:8082/plans -H "Content-Type: application/json" -d '{"name":"Silver PPO Plan","monthlyPremium":399.00}'
 echo
-echo "Listing products:"
-curl -s http://localhost:8082/products
+echo "Listing plans:"
+curl -s http://localhost:8082/plans
 echo
