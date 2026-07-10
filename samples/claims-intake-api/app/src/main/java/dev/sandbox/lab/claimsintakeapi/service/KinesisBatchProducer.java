@@ -3,7 +3,6 @@ package dev.sandbox.lab.claimsintakeapi.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.sandbox.lab.claimsintakeapi.domain.BatchSummary;
-import dev.sandbox.lab.claimsintakeapi.domain.ClaimRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,15 +13,10 @@ import software.amazon.awssdk.services.kinesis.model.PutRecordsRequest;
 import software.amazon.awssdk.services.kinesis.model.PutRecordsRequestEntry;
 import software.amazon.awssdk.services.kinesis.model.PutRecordsResponse;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 // The "large enough that we don't want the upload request itself hostage to writing the whole
 // output file" branch. Still reads the CSV one line at a time (same bounded-memory story as
@@ -52,44 +46,26 @@ public class KinesisBatchProducer {
     }
 
     public BatchSummary publish(String batchId, InputStream csv) throws IOException {
-        long rowsRead = 0;
-        long invalidRows = 0;
-        BigDecimal totalBilledAmount = BigDecimal.ZERO;
         List<PutRecordsRequestEntry> pending = new ArrayList<>(MAX_RECORDS_PER_PUT);
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(csv, StandardCharsets.UTF_8))) {
-            reader.readLine(); // header
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.isBlank()) {
-                    continue;
-                }
-                rowsRead++;
-                Optional<ClaimRow> row = ClaimRowParser.parse(line);
-                if (row.isEmpty()) {
-                    invalidRows++;
-                    continue;
-                }
-                pending.add(toEntry(row.get().claimId(), ClaimStreamMessage.row(batchId, row.get())));
-                totalBilledAmount = totalBilledAmount.add(row.get().billedAmount());
-                if (pending.size() == MAX_RECORDS_PER_PUT) {
-                    putRecords(pending);
-                    pending.clear();
-                }
+        CsvRowReader.Result result = CsvRowReader.read(csv, row -> {
+            pending.add(toEntry(row.claimId(), ClaimStreamMessage.row(batchId, row)));
+            if (pending.size() == MAX_RECORDS_PER_PUT) {
+                putRecords(pending);
+                pending.clear();
             }
-        }
-        long validRows = rowsRead - invalidRows;
+        });
 
         // The end marker's partition key doesn't matter for correctness with a single shard -
         // every record lands on the same (only) shard regardless of key. A multi-shard stream
         // would need the marker sent to every shard, plus a checkpoint store tracking which
         // shards have reported their own end, which is real added complexity intentionally
         // skipped here (see the README's note on why this sample sticks to one shard).
-        pending.add(toEntry(batchId, ClaimStreamMessage.end(batchId, validRows)));
+        pending.add(toEntry(batchId, ClaimStreamMessage.end(batchId, result.validRows())));
         putRecords(pending);
 
-        return BatchSummary.queuedAccepted(batchId, rowsRead, validRows, invalidRows, totalBilledAmount);
+        return BatchSummary.queuedAccepted(batchId, result.rowsRead(), result.validRows(),
+                result.invalidRows(), result.totalBilledAmount());
     }
 
     private PutRecordsRequestEntry toEntry(String partitionKey, ClaimStreamMessage message) {

@@ -2,18 +2,12 @@ package dev.sandbox.lab.claimsintakeapi.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.sandbox.lab.claimsintakeapi.domain.BatchSummary;
-import dev.sandbox.lab.claimsintakeapi.domain.ClaimRow;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Optional;
 
 // The "we have limited resources but this is small enough not to bother with a queue" branch of
 // the decision tree. Runs entirely on the request thread: reads the upload one line at a time
@@ -34,32 +28,11 @@ public class StreamingBatchProcessor {
     }
 
     public BatchSummary process(String batchId, InputStream csv) throws IOException {
-        long rowsRead = 0;
-        long invalidRows = 0;
-        BigDecimal totalBilledAmount = BigDecimal.ZERO;
-
         Path outputPath = outputDir.resolve(batchId + ".jsonl");
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(csv, StandardCharsets.UTF_8));
-             ClaimOutputWriter output = new ClaimOutputWriter(mapper, outputPath)) {
-            reader.readLine(); // header
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.isBlank()) {
-                    continue;
-                }
-                rowsRead++;
-                Optional<ClaimRow> row = ClaimRowParser.parse(line);
-                if (row.isEmpty()) {
-                    invalidRows++;
-                    continue;
-                }
-                output.writeRow(row.get());
-                totalBilledAmount = totalBilledAmount.add(row.get().billedAmount());
-            }
-
-            return BatchSummary.streamed(batchId, rowsRead, output.rowsWritten(), invalidRows,
-                    totalBilledAmount, outputPath.toString());
+        try (ClaimOutputWriter output = new ClaimOutputWriter(mapper, outputPath)) {
+            CsvRowReader.Result result = CsvRowReader.read(csv, output::writeRow);
+            return BatchSummary.streamed(batchId, result.rowsRead(), result.validRows(), result.invalidRows(),
+                    result.totalBilledAmount(), outputPath.toString());
         }
     }
 }

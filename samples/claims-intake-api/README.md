@@ -80,9 +80,15 @@ account has no such per-record tax; a production threshold would reasonably be m
   checkpointing exists to solve), which is real added complexity a demo CSV firehose doesn't
   need.
 - **No checkpointing.** `KinesisBatchConsumer` always starts from `TRIM_HORIZON` (the oldest
-  untrimmed record) on startup rather than persisting its position - a restart mid-batch
-  reprocesses from the start of the stream's retention window. Fine for a sandbox, not how a
-  production consumer should behave.
+  untrimmed record) on startup rather than persisting its position - a restart replays *every*
+  batch still within the stream's retention window, not just the one that was interrupted. For
+  already-COMPLETE batches, that means their output file gets silently reopened, truncated, and
+  rewritten from the replayed records (`ClaimOutputWriter` always opens in create/truncate mode).
+  Cost of a restart is proportional to total historical row volume the stream has carried, not
+  to the size of whatever batch was actually in flight. Fine for how this sandbox is actually
+  run (short-lived, deliberate `deploy.sh`/`destroy.sh` cycles); not how a production consumer
+  should behave, which is exactly what real checkpointing (Kinesis Client Library / DynamoDB)
+  exists to fix.
 - **Naive CSV parsing.** `ClaimRowParser` is a `split(",")`, not a real CSV library - no quoted-
   field/embedded-comma support. Fine because the only CSVs it ever sees are ones `deploy.sh`
   generated itself. A real intake endpoint reading arbitrary uploads would want something like

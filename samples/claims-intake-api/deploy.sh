@@ -82,7 +82,7 @@ def write_batch(path, valid_count, invalid_rows):
         w.writerows(rows)
 
 
-# Well under the 102400-byte default threshold -> StreamingBatchProcessor.
+# Well under the 20000-byte default threshold -> StreamingBatchProcessor.
 write_batch(".run/small.csv", 15, [
     (5, ["CLM-BAD01", "", "2026-01-01", "Missing member id", "50.00"]),
 ])
