@@ -39,10 +39,20 @@ public class BatchIngestService {
         }
 
         String batchId = UUID.randomUUID().toString();
-        BatchSummary summary = file.getSize() <= streamingThresholdBytes
-                ? streamingProcessor.process(batchId, file.getInputStream())
-                : kinesisProducer.publish(batchId, file.getInputStream());
+        if (file.getSize() <= streamingThresholdBytes) {
+            BatchSummary summary = streamingProcessor.process(batchId, file.getInputStream());
+            store.save(summary);
+            return summary;
+        }
 
+        // Register the batch before publishing a single Kinesis record. KinesisBatchConsumer
+        // runs on its own independent @Scheduled cadence and could otherwise reach this batch's
+        // end-of-batch marker before it exists in the store at all - store.findById() would
+        // throw BatchNotFoundException, silently caught and logged by the consumer's per-record
+        // catch block with no retry, since the shard iterator has already moved past that
+        // record by the time anyone notices.
+        store.save(BatchSummary.queuedPending(batchId));
+        BatchSummary summary = kinesisProducer.publish(batchId, file.getInputStream());
         store.save(summary);
         return summary;
     }

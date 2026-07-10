@@ -120,8 +120,15 @@ public class KinesisBatchConsumer {
         if (ClaimStreamMessage.TYPE_END.equals(message.type())) {
             ClaimOutputWriter writer = openWriters.remove(message.batchId());
             if (writer == null) {
-                log.warn("Got end-of-batch marker for {} with no rows seen first", message.batchId());
-                return;
+                if (message.expectedValidRows() != 0) {
+                    log.warn("Got end-of-batch marker for {} with no rows seen first", message.batchId());
+                    return;
+                }
+                // Every row in this batch failed validation, so no ROW message - and therefore
+                // no writer - was ever created. That's a legitimate zero-row completion, not an
+                // error: open+immediately close so outputPath still points at a real (empty)
+                // file, same as any other completed batch.
+                writer = openWriter(message.batchId());
             }
             writer.close();
             if (writer.rowsWritten() != message.expectedValidRows()) {

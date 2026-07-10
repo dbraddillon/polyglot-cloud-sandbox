@@ -13,9 +13,11 @@ import java.util.Optional;
 // by hand instead.
 //
 // Deliberately a naive split(","), not a real CSV parser (no quoted-field/embedded-comma
-// support) - fine here because the sample only ever feeds it CSVs it generated itself
-// (deploy.sh). A real intake pipeline reading arbitrary uploaded files would want a proper
-// library (e.g. Apache Commons CSV) instead.
+// support) - a documented limitation of this sample, not a safety property of its endpoint
+// (the real HTTP endpoint accepts any upload, not just what deploy.sh generates). A comma
+// inside serviceDescription misaligns or rejects that row rather than exposing anything, so
+// the impact is correctness/availability, not data exposure - still, a real intake pipeline
+// reading arbitrary uploads would want a proper library (e.g. Apache Commons CSV) instead.
 public final class ClaimRowParser {
     private static final BigDecimal MAX_SANE_BILLED_AMOUNT = new BigDecimal("50000.00");
 
@@ -49,6 +51,16 @@ public final class ClaimRowParser {
         try {
             billedAmount = new BigDecimal(fields[4].strip());
         } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+        // A pathological scale (e.g. "1e-2147483600") parses fine and even survives the
+        // compareTo() sanity check below - BigDecimal's fast path for comparison doesn't need
+        // to materialize the value - but blows up later with an unchecked ArithmeticException
+        // the moment anything tries to .add() it to a running total, since aligning scales
+        // internally allocates a BigInteger sized to the scale difference. Bounding scale and
+        // precision here, at the same validation boundary as every other check, keeps that
+        // from ever reaching arithmetic code downstream instead of catching it after the fact.
+        if (Math.abs(billedAmount.scale()) > 10 || billedAmount.precision() > 15) {
             return Optional.empty();
         }
         if (billedAmount.signum() <= 0 || billedAmount.compareTo(MAX_SANE_BILLED_AMOUNT) > 0) {

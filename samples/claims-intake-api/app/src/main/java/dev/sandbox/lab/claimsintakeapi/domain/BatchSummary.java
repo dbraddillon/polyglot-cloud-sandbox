@@ -30,6 +30,14 @@ public record BatchSummary(
                 rowsRead, validRows, invalidRows, totalBilledAmount, null);
     }
 
+    // A placeholder registered before a single Kinesis record is published - see
+    // BatchIngestService. KinesisBatchConsumer runs on its own independent schedule and could
+    // otherwise reach this batch's end-of-batch marker before it exists in the store at all.
+    public static BatchSummary queuedPending(String batchId) {
+        return new BatchSummary(batchId, BatchMode.QUEUED, BatchStatus.PROCESSING,
+                0, 0, 0, BigDecimal.ZERO, null);
+    }
+
     public BatchSummary asComplete(String outputPath) {
         return new BatchSummary(batchId, mode, BatchStatus.COMPLETE,
                 rowsRead, validRows, invalidRows, totalBilledAmount, outputPath);
