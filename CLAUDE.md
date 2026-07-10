@@ -108,6 +108,11 @@ Copy whichever existing sample is the closer match, then:
   `PutRecords` barely helped since the bottleneck lives inside Floci's per-record processing.
   Worked around by sizing that sample's demo data and default thresholds down (a few hundred
   rows, not thousands) rather than fighting the emulator — there's no code-side fix for this one.
+- Harmless, not fixed: a perpetual no-op Pulumi diff on `aws:lambda:Function` (`-environment`)
+  in hello-api — every `pulumi up` after the first reports `~1 to update [diff: -environment]`
+  even though nothing in the program sets an `Environment` block. Confirmed by running it twice
+  in a row with zero code changes between. Floci's Lambda emulator seems to always report an
+  `Environment` block back even when none was set.
 
 **Docker-based samples:**
 - **Pulumi's Docker `Image` resource needs `skipPush(true)` for a local-only build.** Without
