@@ -1,0 +1,3 @@
+name: claims-intake-api
+description: Sample - large CSV batch ingest, streaming-vs-Kinesis decision tree, emulated by Floci
+runtime: java

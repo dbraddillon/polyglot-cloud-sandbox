@@ -41,6 +41,11 @@ the repo; just a coherent backdrop for the Java/Pulumi/cloud-emulation patterns 
   fixed while building it (a classic Hibernate lazy-loading trap, and a Pulumi Docker gotcha).
 - [`samples/events-api`](samples/events-api) — the async messaging pattern: an SNS topic fanning
   out to an SQS queue, a publisher endpoint, and an independent background consumer.
+- [`samples/claims-intake-api`](samples/claims-intake-api) — the classic "process a large CSV
+  under limited resources" problem, with a real decision tree: small uploads are streamed and
+  transformed synchronously, large ones are validated and handed to a Kinesis stream for an
+  independent consumer to write out. Documents a real Floci performance limitation found while
+  building it (per-record cost inside `PutRecords`, not per-call).
 
 More samples get added here as they're built.
 
@@ -66,4 +71,4 @@ Each sample's README has the specifics — what it deploys to, what to expect, w
 - [Pulumi CLI](https://www.pulumi.com/docs/install/)
 - Docker (samples here assume Colima on macOS, but any local Docker daemon works)
 - [Floci CLI](https://floci.io) — only needed for the AWS-shaped samples (`hello-api`,
-  `catalog-api`, `events-api`)
+  `catalog-api`, `events-api`, `claims-intake-api`)

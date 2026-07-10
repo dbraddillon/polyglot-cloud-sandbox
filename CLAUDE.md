@@ -5,7 +5,8 @@ cloud accounts. Each experiment is a self-contained **sample**; nothing here is 
 production. Two deploy shapes exist side by side, chosen per-sample based on what's realistic:
 
 - **AWS-shaped samples** deploy to [Floci](https://floci.io), a local AWS/Azure/GCP emulator —
-  `hello-api` (Lambda + API Gateway), `catalog-api` (DynamoDB), `events-api` (SNS + SQS).
+  `hello-api` (Lambda + API Gateway), `catalog-api` (DynamoDB), `events-api` (SNS + SQS),
+  `claims-intake-api` (Kinesis).
 - **Plain services** (a Spring Boot app, anything that's just "a container that listens on a
   port," or a piece of infra Floci can't reliably emulate) deploy via Pulumi's Docker provider
   straight to the local Docker daemon — `task-api`, `claims-api` (Postgres), `search-api`
@@ -32,6 +33,7 @@ samples/
   catalog-api/  Spring Boot + DynamoDB (insurance plans), deployed to Floci
   claims-api/   Spring Boot + Spring Data JPA + Postgres (insurance claims), local Docker
   events-api/   Spring Boot + SNS/SQS async messaging (claim/appointment events), deployed to Floci
+  claims-intake-api/  Large CSV batch ingest: streaming vs. Kinesis decision tree, deployed to Floci
   <next>/       same shape - pick whichever deploy story actually fits what you're building
 ```
 
@@ -95,6 +97,17 @@ Copy whichever existing sample is the closer match, then:
   this up elsewhere) manage the actual Colima + Floci container and its persisted emulator
   state, shared across every project on the machine that uses Floci. `deploy.sh` calls
   `start.sh` automatically if Floci isn't already running.
+- **Kinesis works against Floci, but `PutRecords` has a real per-record cost, not per-call.**
+  Stream creation itself is fine (~20-24s, same as any other Pulumi resource here) and both
+  `PutRecords`/`GetRecords` function correctly — no OpenSearch/RDS-style hang. But a single
+  `PutRecords` call with 500 tiny records measured at **~31 seconds** against Floci (20 records:
+  ~1s, 200 records: ~7s) — roughly 35-60ms spent per record *inside* the batch, so batching
+  fewer/larger calls doesn't buy back much the way it would against real AWS (where the cost is
+  per-call HTTP overhead, not per-record). Found building claims-intake-api: a naive one-
+  `PutRecord`-per-row producer made a 6000-row CSV take minutes; switching to batched
+  `PutRecords` barely helped since the bottleneck lives inside Floci's per-record processing.
+  Worked around by sizing that sample's demo data and default thresholds down (a few hundred
+  rows, not thousands) rather than fighting the emulator — there's no code-side fix for this one.
 
 **Docker-based samples:**
 - **Pulumi's Docker `Image` resource needs `skipPush(true)` for a local-only build.** Without

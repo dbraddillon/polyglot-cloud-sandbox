@@ -58,13 +58,20 @@ public class EventConsumer {
                 SnsEnvelope envelope = mapper.readValue(sqsMessage.body(), SnsEnvelope.class);
                 EventMessage event = mapper.readValue(envelope.message(), EventMessage.class);
                 store.save(ProcessedEvent.from(event));
+
+                // Delete only happens on the success path. SQS is at-least-once delivery: if we
+                // deleted unconditionally (including from the catch block below, or after it),
+                // a message that fails processing would be gone for good instead of becoming
+                // visible again for a retry after the visibility timeout. Leaving it un-deleted
+                // on failure is what makes the queue's own redrive policy (maxReceiveCount, see
+                // the Pulumi infra) actually able to retry it and eventually route it to the DLQ.
+                sqs.deleteMessage(DeleteMessageRequest.builder()
+                        .queueUrl(queueUrl)
+                        .receiptHandle(sqsMessage.receiptHandle())
+                        .build());
             } catch (Exception e) {
                 log.warn("Failed to process message {}", sqsMessage.messageId(), e);
             }
-            sqs.deleteMessage(DeleteMessageRequest.builder()
-                    .queueUrl(queueUrl)
-                    .receiptHandle(sqsMessage.receiptHandle())
-                    .build());
         }
     }
 

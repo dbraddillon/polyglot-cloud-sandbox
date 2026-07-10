@@ -5,8 +5,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Expression;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest;
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +41,28 @@ public class DynamoPlanRepository implements PlanRepository {
     public Plan save(Plan plan) {
         table.putItem(plan);
         return plan;
+    }
+
+    @Override
+    public Optional<Plan> updateIfExists(Plan plan) {
+        // A conditional put replaces the get-then-save pattern the service used to do: that was
+        // two round-trips with a race between them (another writer could delete the item in
+        // between), and this is one round-trip with the existence check enforced atomically by
+        // DynamoDB itself via the condition expression. ConditionalCheckFailedException is
+        // DynamoDB's equivalent of a SQL `UPDATE ... WHERE id = ?` matching zero rows - the call
+        // didn't fail, the precondition just wasn't met, so it's caught and turned into an empty
+        // Optional rather than propagated as an error.
+        try {
+            table.putItem(PutItemEnhancedRequest.builder(Plan.class)
+                    .item(plan)
+                    .conditionExpression(Expression.builder()
+                            .expression("attribute_exists(id)")
+                            .build())
+                    .build());
+            return Optional.of(plan);
+        } catch (ConditionalCheckFailedException e) {
+            return Optional.empty();
+        }
     }
 
     @Override

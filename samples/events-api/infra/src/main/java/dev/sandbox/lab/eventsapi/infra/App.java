@@ -20,8 +20,21 @@ public class App {
                     .name("events-topic")
                     .build());
 
+            // Dead-letter queue: a message that fails processing enough times (maxReceiveCount)
+            // lands here instead of retrying forever or vanishing. No consumer reads it in this
+            // sandbox - the point is demonstrating that a redrive target exists at all, the same
+            // way you'd want one on any real at-least-once consumer.
+            var dlq = new Queue("eventsDlq", QueueArgs.builder()
+                    .name("events-dlq")
+                    .build());
+
+            Output<String> redrivePolicy = dlq.arn().applyValue(dlqArn -> """
+                    {"deadLetterTargetArn":"%s","maxReceiveCount":3}
+                    """.formatted(dlqArn).strip());
+
             var queue = new Queue("eventsQueue", QueueArgs.builder()
                     .name("events-queue")
+                    .redrivePolicy(redrivePolicy)
                     .build());
 
             // A real AWS account needs the queue's own policy to explicitly allow the topic to

@@ -29,8 +29,8 @@ public class PlanService {
     }
 
     public Plan update(String id, String name, BigDecimal monthlyPremium) {
-        get(id); // 404s if missing, same convention as task-api
-        return repository.save(new Plan(id, name, monthlyPremium));
+        return repository.updateIfExists(new Plan(id, name, monthlyPremium))
+                .orElseThrow(() -> new PlanNotFoundException(id));
     }
 
     public void delete(String id) {

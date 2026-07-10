@@ -12,5 +12,10 @@ public interface PlanRepository {
 
     Plan save(Plan plan);
 
+    // Conditional update: succeeds only if an item with this id already exists. Returns empty
+    // instead of throwing so the repository layer stays free of domain exceptions - the service
+    // decides what "not found" means to a caller.
+    Optional<Plan> updateIfExists(Plan plan);
+
     void deleteById(String id);
 }

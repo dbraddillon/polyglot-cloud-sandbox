@@ -1,0 +1,20 @@
+server:
+  port: 8085
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+claims-intake:
+  stream-name: ${CLAIMS_INTAKE_STREAM_NAME:}
+  output-dir: ${CLAIMS_INTAKE_OUTPUT_DIR:.run/output}
+  # Below this upload size (bytes), a batch is processed synchronously in the request
+  # (StreamingBatchProcessor). At or above it, rows are validated and handed to Kinesis instead
+  # (KinesisBatchProducer/KinesisBatchConsumer) - see BatchIngestService. Kept fairly low (20KB,
+  # a few hundred rows) rather than a more realistic six-figure-byte value, because Floci's
+  # Kinesis PutRecords emulation costs ~35-60ms *per record inside the batch*, not per call - see
+  # the README for the measurement. A real AWS account has no such per-record tax, so a
+  # production threshold would reasonably be much higher than this.
+  streaming-threshold-bytes: ${CLAIMS_INTAKE_THRESHOLD_BYTES:20000}
