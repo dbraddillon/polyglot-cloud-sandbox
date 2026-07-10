@@ -49,6 +49,14 @@ the repo; just a coherent backdrop for the Java/Pulumi/cloud-emulation patterns 
 
 More samples get added here as they're built.
 
+## Guided tour
+
+If you're using [Claude Code](https://claude.com/claude-code), this repo ships a `tour` skill
+(`.claude/skills/tour/`) — a guided walkthrough of every sample: what problem each pattern
+solves, a suggested reading order, and pointers straight to the more interesting comments and
+real bugs found while building it (with file:line references, not paraphrased). Ask for a tour,
+or invoke `/tour` directly.
+
 ## Layout
 
 Every sample under `samples/` is fully self-contained: its own Maven module(s), its own Pulumi
