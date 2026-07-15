@@ -87,3 +87,35 @@ it just claimed existed — breaking the native-extension build for `bigdecimal`
 transitively by `cucumber-cucumber-expressions`), and in principle any gem with a C extension,
 not just this one. `ruby@3.3` predates that shim and isn't affected. Details in `run.sh`'s
 comments.
+
+## Metrics (Datadog)
+
+`infra/App.java` also stands up a local Datadog agent container on the same Docker network as the
+app, and `application.yml` wires Micrometer's StatsD registry (`flavor: datadog`) to send it
+metrics — auto-instrumented HTTP request timings (`http.server.requests`) and JVM stats, no custom
+code required. Verified for real: hitting the running API repeatedly and checking
+`docker exec task-api-datadog-agent agent status | grep -A12 DogStatsD` shows genuine packet/byte
+counts climbing, not just "no errors were thrown."
+
+Datadog's agent always needs an API key to boot — there's no local-only mode the way Floci stands
+in for AWS. `infra/App.java` defaults to a dummy key (`DD_API_KEY` env var, opt-in override, same
+convention as this repo's "Real AWS as an opt-in path"), which is enough for the full local
+pipeline — the agent runs, DogStatsD genuinely receives and counts real metrics from task-api —
+just with nowhere real to forward them. Set `DD_API_KEY` to your own free-tier key before running
+`deploy.sh` if you want an actual live dashboard on top of the same wiring; nothing else changes.
+
+Two gotchas found building this, both non-obvious enough to be worth flagging:
+
+- **`management.metrics.export.statsd.*` (what most tutorials/older docs still show) silently
+  no-ops in Spring Boot 3.x.** No error, no warning, no log line — metrics are recorded internally
+  (visible at `/actuator/metrics`) but never leave the process. That property is deprecated at
+  *error* level in favor of the top-level `management.statsd.metrics.export.*` namespace; found
+  by checking Spring's own `spring-configuration-metadata.json` after "it deployed clean but zero
+  packets ever arrived" pointed at a config problem rather than a network one.
+- **Colima's UDP port-forwarding from host to container is unreliable** — confirmed directly:
+  packets sent from the host to a container's UDP port published via `docker run -p` never
+  arrived, while the identical packets sent container-to-container over a shared Docker network
+  worked immediately. TCP forwarding (used everywhere else in this repo) isn't affected. This is
+  why the app reaches the agent via container-name DNS (`DD_AGENT_HOST`), not a host-published
+  port — which also happens to be the more realistic pattern anyway (a co-located agent reached
+  by service discovery, not host loopback).

@@ -1,2 +1,26 @@
 server:
   port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  # `management.metrics.export.statsd.*` (what most tutorials/older docs still show) silently
+  # no-ops in Spring Boot 3.x - it's deprecated at error level in favor of this top-level
+  # `management.statsd.*` namespace. No error, no log line, metrics just never leave the process;
+  # found by checking Spring's own configuration-metadata.json after "it deployed clean but zero
+  # packets ever arrived" pointed at silent misconfiguration rather than a network problem.
+  statsd:
+    metrics:
+      export:
+        enabled: true
+        flavor: datadog
+        # Container-name DNS on the Docker network infra/App.java creates, not localhost -
+        # Colima's UDP port-forwarding from host to container was confirmed unreliable while
+        # building this (TCP forwarding, used everywhere else in this repo, works fine), so the
+        # agent is reached container-to-container instead of via a host-published port. Defaults
+        # to localhost so this still starts cleanly (metrics just go nowhere) when run outside
+        # that network.
+        host: ${DD_AGENT_HOST:localhost}
+        port: 8125

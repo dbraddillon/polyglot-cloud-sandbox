@@ -72,3 +72,27 @@ cd service-tests && ./run.sh
 Needs Homebrew's `ruby@3.3` specifically, not the plain `ruby` formula — see the "macOS" gotcha
 in root `CLAUDE.md` for why (Ruby 4.x's C23 header shim breaks native gem extensions under
 current Apple clang; `ruby@3.3` predates it).
+
+## Metrics (Datadog)
+
+`infra/App.java` stands up a local Datadog agent container alongside the app, on the same Docker
+network — the third dependency this repo's `infra/App.java` programs manage for task-api, after
+the JUnit tests and the Cucumber suite already covered its behavior. `application.yml` wires
+Micrometer's StatsD registry (`flavor: datadog`) to send it real metrics, no custom instrumentation
+code needed for the auto-captured `http.server.requests`/JVM stats.
+
+Two things worth a look here specifically:
+- **`application.yml`'s comment on the `statsd:` block** — a genuinely sneaky Spring Boot 3.x
+  gotcha: `management.metrics.export.statsd.*` (still what most tutorials show) is deprecated at
+  *error* level and silently does nothing; the real property is the top-level
+  `management.statsd.metrics.export.*`. No error, no log line — metrics just never leave the
+  process. Found by checking Spring's own configuration metadata, not by guessing.
+- **`infra/App.java`'s `DEFAULT_DD_API_KEY` constant** — Datadog's agent always needs an API key
+  to boot, unlike Floci which fully stands in for AWS. A dummy key still gets you a fully working
+  *local* pipeline (the agent runs, DogStatsD genuinely receives and counts real packets — verified
+  by watching those counts climb against live traffic); a real key (opt-in via `DD_API_KEY`, same
+  convention as this repo's "Real AWS as an opt-in path") is only needed for an actual dashboard on
+  top of the same wiring.
+
+See the main README's "Metrics (Datadog)" section for the Colima UDP-forwarding gotcha this also
+surfaced (container-to-container works; host-to-container over a published UDP port doesn't).

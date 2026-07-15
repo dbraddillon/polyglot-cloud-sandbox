@@ -34,6 +34,21 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
+    <!-- Actuator: health/metrics endpoints out of the box, roughly ASP.NET Core's health-check
+         middleware plus an App Insights-style metrics pipeline bundled into one starter. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <!-- Micrometer is Java's vendor-neutral metrics facade (like .NET's System.Diagnostics.Metrics
+         API) - this registry ships the recorded metrics out over the StatsD wire protocol.
+         `flavor: datadog` (set in application.yml) is what adds Datadog's tag-supporting
+         extension on top of the plain Etsy-style statsd format a C# dev might know from the
+         StatsD.NET/DogStatsD-CSharp-Client NuGet packages. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-statsd</artifactId>
+    </dependency>
     <!-- JUnit 5 + AssertJ + Mockito, test-scoped - like Microsoft.NET.Test.Sdk pulling in
          xUnit/FluentAssertions/Moq as one bundle. -->
     <dependency>

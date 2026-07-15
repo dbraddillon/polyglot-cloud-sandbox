@@ -33,7 +33,7 @@ force it if the tech pattern being demonstrated doesn't lend itself to it.
 ```
 samples/
   hello-api/    Lambda + HTTP API Gateway, deployed to Floci (kept theme-neutral)
-  task-api/     Spring Boot REST API (member care tasks), local Docker (no Floci)
+  task-api/     Spring Boot REST API (member care tasks), local Docker (no Floci), Datadog metrics
   search-api/   Spring Boot + OpenSearch (health articles), local Docker (Floci's emulation hangs)
   catalog-api/  Spring Boot + DynamoDB (insurance plans), deployed to Floci
   claims-api/   Spring Boot + Spring Data JPA + Postgres (insurance claims), local Docker
@@ -94,11 +94,18 @@ with no `pom.xml` of its own at all.
 ## Local tool setups (`tools/`)
 
 Not every item worth demonstrating is a deploy-pattern "sample." Some are dev tooling that
-exercises an *existing* sample rather than being one itself — `tools/jenkins/` is the first: a
-local Jenkins running a real pipeline against `task-api`'s JUnit suite, with no app/infra of its
-own. These get their own `deploy.sh`/`destroy.sh` (same single-command bar as every sample) but
-live under `tools/`, not `samples/`, since there's no deploy-shape decision being made — just a
-tool standing itself up.
+exercises an *existing* sample rather than being one itself — `tools/jenkins/` and
+`tools/jfrog-artifactory/` are both this shape, with no app/infra of their own. These get their
+own `deploy.sh`/`destroy.sh` (same single-command bar as every sample) but live under `tools/`,
+not `samples/`, since there's no deploy-shape decision being made — just a tool standing itself
+up.
+
+Datadog metrics went the *other* way on purpose: it needed genuine code changes inside task-api
+itself (a Micrometer dependency, actual instrumentation, a co-located agent container in
+task-api's own `infra/App.java`), not something observing the sample from outside - so it lives
+in `samples/task-api/` directly rather than a `tools/datadog/`. Use this as the rule of thumb for
+where a new tool-list item belongs: does it need to change the sample's own code/infra, or just
+watch/exercise it from the sidelines?
 
 ## Common gotchas
 
@@ -192,6 +199,12 @@ tool standing itself up.
   unless-stopped` to self-heal a few seconds later. Same class of problem Kubernetes readiness
   probes exist to solve — left as-is and documented rather than engineered around, since it's a
   genuinely common real-world container-orchestration lesson.
+- **Colima's UDP port-forwarding from host to container is unreliable; TCP forwarding isn't.**
+  Confirmed directly building task-api's Datadog metrics wiring: identical packets sent from the
+  host to a container's UDP port published via `docker run -p` never arrived, while the same
+  packets sent container-to-container over a shared Docker network worked immediately. Anything
+  UDP-based (DogStatsD, other statsd-family protocols) needs to be reached via container-name DNS
+  on a shared network, not a host-published port, on this setup.
 
 **Java/Hibernate:**
 - **`@OneToMany` defaults to `FetchType.LAZY`, and `spring.jpa.open-in-view: false` means the
@@ -202,7 +215,16 @@ tool standing itself up.
   opposite failure mode: unpopulated navigation properties are just silently empty, no
   exception, no lazy proxy, no session — arguably more dangerous since it doesn't crash.
 
-**Polyglot samples (python-api, node-api, clojure-datomic-api):**
+**Spring Boot:**
+- **`management.metrics.export.statsd.*` silently no-ops in Spring Boot 3.x** — deprecated at
+  *error* level in favor of the top-level `management.statsd.metrics.export.*` namespace, but
+  nothing logs a warning or fails; metrics just get recorded internally (visible at
+  `/actuator/metrics`) and never leave the process. Found on task-api's Datadog wiring by
+  checking Spring's own `spring-configuration-metadata.json` after "it deployed clean but zero
+  metrics ever arrived" pointed at config rather than network. Worth checking for in any
+  Micrometer-registry config that looks copied from an older tutorial.
+
+**Java/Hibernate:**
 - **Floci genuinely runs non-Java Lambda runtimes, not just Java.** Confirmed with python-api
   (Python 3.12): the same Java/Pulumi infra shape as hello-api, pointed at a Python handler
   instead, deploys cleanly and returns a real response computed by an actual Python interpreter

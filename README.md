@@ -69,7 +69,8 @@ More samples get added here as they're built.
 
 `samples/task-api` also has a black-box [Ruby + Cucumber service-level test suite](samples/task-api/service-tests)
 alongside its JUnit tests — Gherkin scenarios driving the same behavior purely over HTTP, the way
-a QA suite would.
+a QA suite would — and a co-located [Datadog agent + Micrometer metrics](samples/task-api#metrics-datadog),
+verified to genuinely receive real traffic locally even without a paid/real Datadog account.
 
 There's also a [Postman/Insomnia request collection](postman/) covering every sample's
 endpoints, verified end-to-end via Newman (Postman's CLI runner) while building it, a local

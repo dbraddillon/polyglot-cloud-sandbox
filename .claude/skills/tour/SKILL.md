@@ -213,3 +213,14 @@ gotcha found along the way: Artifactory's own repository-*management* REST API (
 reconfiguring a repo) is Pro-gated, confirmed directly rather than assumed - so this publishes to
 the repo OSS ships with out of the box instead of fighting that wall, which still fully
 demonstrates the "publish and retrieve a real artifact" capability the tool is there to show.
+
+Datadog metrics went a different route on purpose - not a `tools/` entry, but real changes inside
+`samples/task-api/` itself (a Micrometer StatsD dependency, `application.yml` config, a co-located
+agent container in `infra/App.java`), since it needed to change the sample's own code/infra rather
+than just observe it from outside. Worth pointing to for two things: the "prove it, don't assume
+it" bar applied even without a real Datadog account (a dummy API key still gets a fully working
+local pipeline - confirmed by watching the agent's own packet/byte counters climb in response to
+real HTTP traffic), and a genuinely sneaky Spring Boot 3.x gotcha where the *old*, still-commonly-
+tutorialed StatsD config property silently no-ops with zero error output. See task-api's README
+"Metrics (Datadog)" section for the full story, including the Colima UDP-forwarding gotcha this
+also surfaced.

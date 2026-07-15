@@ -33,3 +33,11 @@ echo
 echo "Listing tasks:"
 curl -s http://localhost:8080/tasks
 echo
+echo
+if [ -z "${DD_API_KEY:-}" ]; then
+  echo "Metrics are flowing to a local Datadog agent (dummy API key - see README). Set DD_API_KEY"
+  echo "to your own free-tier key before deploying if you want a real dashboard."
+else
+  echo "Metrics are flowing to a local Datadog agent using your DD_API_KEY."
+fi
+echo "Check reception: docker exec task-api-datadog-agent agent status | grep -A12 DogStatsD"
