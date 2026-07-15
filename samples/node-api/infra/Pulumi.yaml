@@ -1,0 +1,3 @@
+name: node-api
+description: Sample - Express REST API (member benefit notices), containerized via Pulumi's Docker provider
+runtime: java

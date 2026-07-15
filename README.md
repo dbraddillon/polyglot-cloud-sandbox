@@ -16,6 +16,11 @@ closest C#/.NET equivalent — an interface with a default method, a builder rep
 object initializers, `Optional` vs. nullable references, that kind of thing. Useful if you're
 coming to Java from a C# background, or just curious how the two ecosystems compare.
 
+Mostly Java, with a few samples that deliberately aren't: the same Java/Pulumi infra pattern
+provisioning a Python Lambda, a Node service, and — furthest from Java — a Clojure service over
+Datomic. The point of those is proving the IaC doesn't care what language the workload is
+written in, not becoming a tutorial in each language.
+
 The sample domains share a light, made-up health-insurance theme (claims, plans, care tasks) —
 just enough to read as *something real* instead of another `hello-world`/`orders` tutorial demo,
 without leaning on any actual company, product, or industry-specific detail. Not the point of
@@ -46,6 +51,16 @@ the repo; just a coherent backdrop for the Java/Pulumi/cloud-emulation patterns 
   transformed synchronously, large ones are validated and handed to a Kinesis stream for an
   independent consumer to write out. Documents a real Floci performance limitation found while
   building it (per-record cost inside `PutRecords`, not per-call).
+- [`samples/python-api`](samples/python-api) — the same Lambda + API Gateway shape as
+  `hello-api`, deployed to Floci, but with a Python 3.12 handler instead of a Java one —
+  confirms Floci genuinely runs non-Java Lambda runtimes, not just Java.
+- [`samples/node-api`](samples/node-api) — the same CRUD-plus-one-business-rule shape as
+  `task-api` (member benefit notices), but Express instead of Spring Boot, containerized the
+  same way via Pulumi's Docker provider. Version-pinned with volta/`.nvmrc`.
+- [`samples/clojure-datomic-api`](samples/clojure-datomic-api) — a care-provider directory over
+  Datomic's free, fully local `dev-local` peer library — a genuine Datalog query, not a SQL/JPQL
+  one. The first sample with neither Floci nor Docker: `dev-local` is embedded and in-process,
+  nothing to provision at all.
 
 More samples get added here as they're built.
 
@@ -79,4 +94,7 @@ Each sample's README has the specifics — what it deploys to, what to expect, w
 - [Pulumi CLI](https://www.pulumi.com/docs/install/)
 - Docker (samples here assume Colima on macOS, but any local Docker daemon works)
 - [Floci CLI](https://floci.io) — only needed for the AWS-shaped samples (`hello-api`,
-  `catalog-api`, `events-api`, `claims-intake-api`)
+  `catalog-api`, `events-api`, `claims-intake-api`, `python-api`)
+- Only needed for the polyglot samples, one each: Node ([volta](https://volta.sh) or nvm, for
+  `node-api`), Python 3 (`python-api` — used only to zip/package, any Lambda-compatible version
+  works locally), the [Clojure CLI](https://clojure.org/guides/install_clojure) (`clojure-datomic-api`)

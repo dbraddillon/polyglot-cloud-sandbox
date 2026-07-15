@@ -1,0 +1,15 @@
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        com.datomic/local {:mvn/version "1.0.291"}
+        ring/ring-core {:mvn/version "1.12.2"}
+        ring/ring-json {:mvn/version "0.5.1"}
+        compojure/compojure {:mvn/version "1.7.1"}
+        http-kit/http-kit {:mvn/version "2.8.0"}
+        cheshire/cheshire {:mvn/version "5.13.0"}}
+ :aliases
+ {;; clojure -M:test runs the whole suite via a tiny hand-written runner (see
+  ;; test/.../runner.clj) - deliberately not the cognitect-labs/test-runner most real Clojure
+  ;; projects reach for, since that's a git dependency (needs :git/url + :git/sha coordinates)
+  ;; and this repo's whole point is samples that resolve cleanly from public Maven repos alone.
+  :test {:extra-paths ["test"]
+         :main-opts ["-m" "dev.sandbox.lab.clojure-datomic-api.runner"]}}}

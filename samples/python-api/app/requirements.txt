@@ -1,0 +1,4 @@
+# No third-party dependencies - stdlib only (json, datetime). Present anyway since a
+# requirements.txt is the idiomatic place a real Python Lambda would list its deps; the infra
+# program zips this whole directory as-is (see infra's App.java), so any packages installed
+# into this folder (pip install -t . -r requirements.txt) would ship with the function.

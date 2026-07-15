@@ -49,42 +49,55 @@ review. Skip ceremony; get to the interesting part fast.
 
 ```
 samples/
-  hello-api/          Lambda + API Gateway, deployed to Floci        — the quickstart template
+  hello-api/           Lambda + API Gateway, deployed to Floci        — the quickstart template
   task-api/            Spring Boot REST API, plain Docker             — no Floci, no database
   search-api/          Spring Boot + OpenSearch, plain Docker         — Floci gotcha #1
   catalog-api/         Spring Boot + DynamoDB, deployed to Floci      — NoSQL
   claims-api/          Spring Boot + JPA + Postgres, plain Docker     — SQL, Floci gotcha #2
   events-api/          Spring Boot + SNS/SQS, deployed to Floci       — async messaging (queue)
   claims-intake-api/   Spring Boot + Kinesis, deployed to Floci       — async messaging (stream)
+  python-api/          Python Lambda + API Gateway, deployed to Floci — same infra, Python workload
+  node-api/            Express REST API, plain Docker                — same shape as task-api, Node
+  clojure-datomic-api/ Clojure + Datomic dev-local, no infra at all   — furthest from Java
 ```
 
-**Two deploy shapes, chosen per-sample, not by convention:** a sample deploys to Floci when it's
-genuinely AWS-shaped (Lambda, DynamoDB, SNS/SQS, Kinesis) and Floci handles that resource well.
-It deploys via Pulumi's Docker provider straight to the local Docker daemon instead when it's
-"just a container" (task-api) or when Floci's own emulation of that specific AWS resource has a
-real gap (search-api/OpenSearch, claims-api/Postgres-via-RDS — both documented, both genuine
-findings, not assumptions). That split is itself worth walking someone through — it's a real
-design decision, not boilerplate.
+**Three deploy shapes, chosen per-sample, not by convention:** a sample deploys to Floci when
+it's genuinely AWS-shaped (Lambda, DynamoDB, SNS/SQS, Kinesis) and Floci handles that resource
+well. It deploys via Pulumi's Docker provider straight to the local Docker daemon instead when
+it's "just a container" (task-api, node-api) or when Floci's own emulation of that specific AWS
+resource has a real gap (search-api/OpenSearch, claims-api/Postgres-via-RDS — both documented,
+both genuine findings, not assumptions). And a sample uses no infra at all when its backing
+service is itself embedded/in-process with nothing to provision (clojure-datomic-api's Datomic
+`dev-local`) — the newest and rarest of the three. That split is itself worth walking someone
+through — it's a real design decision, not boilerplate.
+
+**Most samples are Java; three deliberately aren't** (python-api, node-api,
+clojure-datomic-api) — same Java/Pulumi infra pattern throughout, proving the IaC doesn't care
+what language the workload is written in. Worth touring back-to-back with their closest Java
+sibling (python-api ↔ hello-api, node-api ↔ task-api) to feel what actually differs.
 
 **Suggested order** (roughly increasing complexity, each one adds one new idea on top of the
 last): `hello-api` → `task-api` → `catalog-api` → `claims-api` → `search-api` → `events-api` →
-`claims-intake-api`.
+`claims-intake-api` → `python-api` → `node-api` → `clojure-datomic-api`.
 
 ## Looking for a specific pattern?
 
 | Interested in... | Go to |
 |---|---|
-| Serverless / Lambda | `hello-api` |
-| "Just a container," no database | `task-api` |
-| A NoSQL database | `catalog-api` (DynamoDB) |
+| Serverless / Lambda | `hello-api` (Java), `python-api` (Python, same infra) |
+| "Just a container," no database | `task-api` (Java), `node-api` (Node, same shape) |
+| A NoSQL database | `catalog-api` (DynamoDB), `clojure-datomic-api` (Datomic, a genuinely different query model) |
 | A SQL database / ORM | `claims-api` (Postgres + JPA/Hibernate) |
 | Full-text search | `search-api` (OpenSearch) |
 | Async messaging, queue-shaped (fan-out, retry, dead-letter) | `events-api` (SNS → SQS) |
 | Async messaging, stream-shaped (ordered, replayable, high-throughput) | `claims-intake-api` (Kinesis) |
 | A decision tree / picking a strategy at runtime | `claims-intake-api` (small vs. large upload) |
 | Infrastructure as Code in Java (Pulumi) | any sample's `infra/` — `hello-api`'s is the simplest |
-| A real bug that got found and fixed while building this | `claims-api` (Hibernate lazy-loading), `catalog-api` (a TOCTOU race), `events-api` (a message deleted before it was actually processed), `claims-intake-api` (three: a stuck-forever state bug, an ordering race, a BigDecimal crash) |
+| The same IaC provisioning a non-Java workload | `python-api`, `node-api` |
+| A language with no infra/container/emulator involved at all | `clojure-datomic-api` |
+| A real bug that got found and fixed while building this | `claims-api` (Hibernate lazy-loading), `catalog-api` (a TOCTOU race), `events-api` (a message deleted before it was actually processed), `claims-intake-api` (three: a stuck-forever state bug, an ordering race, a BigDecimal crash), `clojure-datomic-api` (a shared-test-state bug) |
 | Real emulator limitations, not assumptions | `search-api`/`claims-api` (Floci's OpenSearch/RDS gaps), `claims-intake-api` (Kinesis `PutRecords` is real but slow per-record) |
+| A local dev-tool gotcha, not an emulator one | `node-api` (volta shim ordering), `clojure-datomic-api` (Homebrew's Clojure formula vs. stale Xcode CLT) |
 
 ## Highlight reel: the best Java ⇄ C#/.NET moments
 
@@ -119,12 +132,39 @@ each file and quote the real surrounding lines rather than just reading this lis
   `System.Text.Json` just handles `DateOnly`/`DateTime` out of the box. Confirmed the exact
   exception empirically rather than assumed, if that level of detail comes up.
 
+## The three non-Java samples, briefly
+
+Not a Java/C# comparison this time — these compare back to Java instead, since that's this
+repo's other constant:
+
+- **No interface to implement at all**: `samples/python-api/app/handler.py` — AWS Lambda's
+  Python runtime just calls whatever `module.function_name` string is configured (see
+  `infra/.../App.java`'s `.handler("handler.handler")`), no base class or interface the way
+  Java's `RequestHandler<In, Out>` requires.
+- **No real enum type**: `samples/node-api/app/index.js` — the one status field (`PENDING`/
+  `SENT`) is a plain frozen object of string constants, not a type the compiler holds anyone
+  accountable to at every call site the way Java's `TaskStatus` enum is in the sibling
+  `task-api` sample.
+- **No classes, no objects, at all**: `samples/clojure-datomic-api/app/src/.../core.clj` — a
+  "Provider" is never reified as a type anywhere, just a plain map passed around. The closest
+  thing to a compile-time contract would be a spec/schema library layered on top, deliberately
+  skipped to keep the sample small.
+- **A real, empirically-found bug in the Clojure sample worth walking through**:
+  `samples/clojure-datomic-api/README.md`'s "A real gotcha found building this" section — a
+  `use-fixtures :each` that looked like it gave every test a fresh database, but didn't
+  (`create-database`/`connect` just reconnect to whatever already exists). Caught by an
+  assertion failing with the wrong count, not by code review.
+
 ## A note on tests
 
-Most samples have real unit tests (JUnit 5 + Mockito + AssertJ) — `hello-api` and `search-api`
-are the two without any. `claims-intake-api` has by far the deepest set (34 tests across 5
-classes), written specifically to lock in real bugs found during a multi-lens review pass — each
-regression test was verified to actually fail against the pre-fix code before the fix was
-restored, not just assumed to catch the bug. If "what does a good regression test look like"
-comes up, `KinesisBatchConsumerTest`'s zero-valid-rows test and `BatchIngestServiceTest`'s
-ordering test (`InOrder` + `ArgumentCaptor`) are the two best examples to point at.
+Most samples have real unit tests (JUnit 5 + Mockito + AssertJ, or that language's closest
+equivalent — `node:test` + supertest for node-api, `clojure.test` for clojure-datomic-api).
+`hello-api` and `search-api` are the two without any (both Java); `python-api` has none either,
+matching `hello-api`'s equally-trivial shape. `claims-intake-api` has by far the deepest set (34
+tests across 5 classes), written specifically to lock in real bugs found during a multi-lens
+review pass — each regression test was verified to actually fail against the pre-fix code before
+the fix was restored, not just assumed to catch the bug. Same discipline shows up in
+clojure-datomic-api's test-isolation fix. If "what does a good regression test look like" comes
+up, `KinesisBatchConsumerTest`'s zero-valid-rows test and `BatchIngestServiceTest`'s ordering
+test (`InOrder` + `ArgumentCaptor`) are the two best Java examples; clojure-datomic-api's
+`use-fixtures` story is the best non-Java one.

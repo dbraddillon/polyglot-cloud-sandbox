@@ -1,0 +1,3 @@
+name: python-api
+description: Sample - Python Lambda + HTTP API Gateway, provisioned by Java/Pulumi infra, emulated by Floci
+runtime: java

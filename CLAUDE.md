@@ -2,19 +2,23 @@
 
 General sandbox for Java microservice + IaC experiments, deployed locally instead of to real
 cloud accounts. Each experiment is a self-contained **sample**; nothing here is meant to run in
-production. Two deploy shapes exist side by side, chosen per-sample based on what's realistic:
+production. Three deploy shapes exist side by side, chosen per-sample based on what's realistic:
 
 - **AWS-shaped samples** deploy to [Floci](https://floci.io), a local AWS/Azure/GCP emulator —
   `hello-api` (Lambda + API Gateway), `catalog-api` (DynamoDB), `events-api` (SNS + SQS),
-  `claims-intake-api` (Kinesis).
-- **Plain services** (a Spring Boot app, anything that's just "a container that listens on a
-  port," or a piece of infra Floci can't reliably emulate) deploy via Pulumi's Docker provider
-  straight to the local Docker daemon — `task-api`, `claims-api` (Postgres), `search-api`
-  (OpenSearch — Floci can run this too, but has a bug that makes Pulumi's AWS provider hang
-  forever, see the gotchas below).
+  `claims-intake-api` (Kinesis), `python-api` (Lambda + API Gateway again, Python runtime).
+- **Plain services** (a Spring Boot/Express app, anything that's just "a container that listens
+  on a port," or a piece of infra Floci can't reliably emulate) deploy via Pulumi's Docker
+  provider straight to the local Docker daemon — `task-api`, `node-api`, `claims-api` (Postgres),
+  `search-api` (OpenSearch — Floci can run this too, but has a bug that makes Pulumi's AWS
+  provider hang forever, see the gotchas below).
+- **No infra at all** — for a sample whose "backing service" is itself embedded/in-process, with
+  nothing to provision or containerize. `clojure-datomic-api` (Datomic `dev-local`, `:mem`
+  storage) is the only one so far; `deploy.sh` just runs the app directly.
 
-See "Java comment policy" below — the inline comments in the Java code compare constructs to
-their closest C#/.NET equivalents, useful for readers coming from that background.
+Most samples are Java; a few (`python-api`, `node-api`, `clojure-datomic-api`) deliberately
+aren't, to prove the same Java/Pulumi infra pattern works regardless of the workload's language -
+see "Java comment policy" below for how the inline-comment convention adapts per language.
 
 **Sample domains share a light health-insurance theme** (claims, plans, care tasks, benefits
 articles) — deliberately generic, no real company/product/industry specifics, just enough to
@@ -34,14 +38,22 @@ samples/
   claims-api/   Spring Boot + Spring Data JPA + Postgres (insurance claims), local Docker
   events-api/   Spring Boot + SNS/SQS async messaging (claim/appointment events), deployed to Floci
   claims-intake-api/  Large CSV batch ingest: streaming vs. Kinesis decision tree, deployed to Floci
+  python-api/   Python 3.12 Lambda + HTTP API Gateway (same Java/Pulumi infra as hello-api), Floci
+  node-api/     Express REST API (member benefit notices), local Docker (no Floci)
+  clojure-datomic-api/  Clojure + Ring/Compojure over Datomic dev-local - no infra/ dir at all
   <next>/       same shape - pick whichever deploy story actually fits what you're building
 ```
 
-Every sample has the same internal shape:
+Every sample has roughly the same internal shape - `app/` (the service), `infra/` (a Pulumi
+program in Java, unless the sample needs none at all - see `clojure-datomic-api`),
+`deploy.sh`/`destroy.sh`, `README.md`. The **workload** language varies (`python-api`'s and
+`node-api`'s and `clojure-datomic-api`'s `app/` isn't Java, and has no `pom.xml`), but the
+**infra program** provisioning it is always Java/Pulumi, same as every other sample:
 ```
-app/            Java service code (its own Maven module) - controller/service/repository/domain
-                layers, a Dockerfile if it gets containerized
-infra/          Pulumi program in Java provisioning whatever the sample needs
+app/            Service code (its own Maven module, unless the workload isn't Java - see above)
+                - controller/service/repository/domain layers, a Dockerfile if containerized
+infra/          Pulumi program in Java provisioning whatever the sample needs (skipped entirely
+                if there's nothing to provision - an embedded/in-process backing service)
 deploy.sh       build + provision + curl/exercise the result
 destroy.sh      tear down
 README.md       sample-specific notes/gotchas, why it's built the way it is
@@ -66,6 +78,12 @@ Copy whichever existing sample is the closer match, then:
    `.handler(...)` string) to the new package.
 5. `deploy.sh`/`destroy.sh` need no path changes if copied as-is — they're written relative
    to their own directory (`cd "$(dirname "$0")"`), not the repo root.
+
+Steps 2-3 assume the sample's `app/` is Java, which is the common case. For a non-Java workload
+(see python-api, node-api, clojure-datomic-api), only the **infra program** needs the
+`dev.sandbox.lab.<newname>.infra` repackaging and `pom.xml`/`mainClass` update — `app/` follows
+that language's own conventions instead (a `deps.edn`, a `package.json`, whatever's idiomatic),
+with no `pom.xml` of its own at all.
 
 ## Common gotchas
 
@@ -112,7 +130,9 @@ Copy whichever existing sample is the closer match, then:
   in hello-api — every `pulumi up` after the first reports `~1 to update [diff: -environment]`
   even though nothing in the program sets an `Environment` block. Confirmed by running it twice
   in a row with zero code changes between. Floci's Lambda emulator seems to always report an
-  `Environment` block back even when none was set.
+  `Environment` block back even when none was set. Also confirmed in python-api — it's a general
+  Floci Lambda-emulator quirk, not specific to a Java-runtime function (see "Polyglot samples"
+  below for more on python-api specifically).
 
 **Docker-based samples:**
 - **Pulumi's Docker `Image` resource needs `skipPush(true)` for a local-only build.** Without
@@ -151,6 +171,33 @@ Copy whichever existing sample is the closer match, then:
   opposite failure mode: unpopulated navigation properties are just silently empty, no
   exception, no lazy proxy, no session — arguably more dangerous since it doesn't crash.
 
+**Polyglot samples (python-api, node-api, clojure-datomic-api):**
+- **Floci genuinely runs non-Java Lambda runtimes, not just Java.** Confirmed with python-api
+  (Python 3.12): the same Java/Pulumi infra shape as hello-api, pointed at a Python handler
+  instead, deploys cleanly and returns a real response computed by an actual Python interpreter
+  inside Floci. `FileArchive` zips a plain source directory on the fly for a non-compiled
+  runtime like Python; no build step needed the way the Java samples need `mvn package` first.
+- **`volta pin` writes the config correctly, but only takes effect if Volta's shims come before
+  other Node installs in `PATH`.** On a machine with a Homebrew-installed Node already ahead of
+  `~/.volta/bin`, `cd`-ing into a volta-pinned project still resolves the system Node, not the
+  pinned version — confirmed directly with `node --version` in node-api's directory, not
+  assumed. A one-time, machine-wide `PATH`/`brew unlink node` fix, not something a sample's
+  `deploy.sh` should do on a developer's behalf. Doesn't affect the actual deploy either way -
+  the Dockerfile pins its own Node version independently of what the host shell resolves.
+- **Homebrew's `clojure` formula can fail with "Your Command Line Tools are too outdated"** even
+  when nothing else on the machine is affected — its `rlwrap`/`libptytty` native dependencies
+  need compilation tooling the core `clojure`/`clj` CLI itself doesn't. Worked around by
+  installing directly from the official tarball
+  (`https://download.clojure.org/install/clojure-tools-<version>.tar.gz`) into `~/.local/` by
+  hand instead, sidestepping Homebrew (and the stale-CLT problem) entirely.
+- **Datomic `dev-local`'s database persists for the life of the client object, even with
+  `:storage-dir :mem`.** `create-database` is a no-op if the named database already exists, and
+  `connect` just reconnects to whatever's already there - calling both again does *not* give you
+  a fresh, empty database. A `use-fixtures :each` that only called this "init" step assumed
+  per-test isolation it didn't actually have, and every test in clojure-datomic-api's suite
+  silently shared one ever-growing database until an assertion caught it (expected count 2, got
+  5). Fixed with an explicit delete-then-recreate (`reset-db!`) instead.
+
 **macOS:**
 - **Plain `java` can resolve to Apple's stub** ("please install Java") if a Homebrew JDK isn't
   linked as the system default, even though `mvn` finds a real JDK fine through its own
@@ -175,8 +222,17 @@ vs. EF Core's, that kind of thing. Not every line, and not where the parallel is
 `for`) — just the spots where Java (or a framework like Spring/Hibernate) diverges enough from
 C#/.NET/EF Core/ASP.NET Core to trip someone up.
 
+The non-Java samples (`python-api`, `node-api`, `clojure-datomic-api`) apply the same policy at
+one remove: light comments calling out where that language's idiom diverges from Java's, since
+Java is this repo's other constant and most readers' anchor point (e.g. Python's plain-function
+Lambda handler vs. Java's `RequestHandler<In, Out>` interface, Node's lack of a real enum type,
+Clojure having no class/object concept at all). Same restraint applies - only genuine divergence
+points, not a comment on every line.
+
 ## Prerequisites
 
 JDK 21, Maven, Pulumi CLI, Docker (Colima, Docker Desktop, whatever — samples assume Colima on
 macOS specifically for the Floci-lifecycle scripts). [Floci CLI](https://floci.io) needed for
-the AWS-shaped samples (see Layout above).
+the AWS-shaped samples (see Layout above). Node ([volta](https://volta.sh) or nvm), Python 3, and
+the [Clojure CLI](https://clojure.org/guides/install_clojure) are needed only for their one
+respective sample each (`node-api`, `python-api`, `clojure-datomic-api`).
