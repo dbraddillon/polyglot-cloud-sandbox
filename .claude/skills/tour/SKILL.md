@@ -59,6 +59,7 @@ samples/
   python-api/          Python Lambda + API Gateway, deployed to Floci — same infra, Python workload
   node-api/            Express REST API, plain Docker                — same shape as task-api, Node
   clojure-datomic-api/ Clojure + Datomic dev-local, no infra at all   — furthest from Java
+  attachments-api/     Spring Boot + S3, deployed to Floci            — the most direct AWS-SDK sample
 ```
 
 **Three deploy shapes, chosen per-sample, not by convention:** a sample deploys to Floci when
@@ -77,8 +78,9 @@ what language the workload is written in. Worth touring back-to-back with their 
 sibling (python-api ↔ hello-api, node-api ↔ task-api) to feel what actually differs.
 
 **Suggested order** (roughly increasing complexity, each one adds one new idea on top of the
-last): `hello-api` → `task-api` → `catalog-api` → `claims-api` → `search-api` → `events-api` →
-`claims-intake-api` → `python-api` → `node-api` → `clojure-datomic-api`.
+last): `hello-api` → `task-api` → `attachments-api` → `catalog-api` → `claims-api` →
+`search-api` → `events-api` → `claims-intake-api` → `python-api` → `node-api` →
+`clojure-datomic-api`.
 
 ## Looking for a specific pattern?
 
@@ -88,6 +90,8 @@ last): `hello-api` → `task-api` → `catalog-api` → `claims-api` → `search
 | "Just a container," no database | `task-api` (Java), `node-api` (Node, same shape) |
 | A NoSQL database | `catalog-api` (DynamoDB), `clojure-datomic-api` (Datomic, a genuinely different query model) |
 | A SQL database / ORM | `claims-api` (Postgres + JPA/Hibernate) |
+| Object storage (S3) | `attachments-api` |
+| Java Streams / functional style, deliberately | `attachments-api`'s `findAll()` (`.stream().map(...).toList()`) |
 | Full-text search | `search-api` (OpenSearch) |
 | Async messaging, queue-shaped (fan-out, retry, dead-letter) | `events-api` (SNS → SQS) |
 | Async messaging, stream-shaped (ordered, replayable, high-throughput) | `claims-intake-api` (Kinesis) |
@@ -131,6 +135,11 @@ each file and quote the real surrounding lines rather than just reading this lis
   — Jackson has no built-in `java.time` support and throws without `JavaTimeModule` registered;
   `System.Text.Json` just handles `DateOnly`/`DateTime` out of the box. Confirmed the exact
   exception empirically rather than assumed, if that level of detail comes up.
+- **Streams as LINQ's closest Java equivalent**: `samples/attachments-api/app/.../S3AttachmentRepository.java`'s
+  `findAll()` — `.stream().map(...).toList()` projects raw S3 SDK results into this API's own
+  shape in one pass, the same idea as `.Select(...).ToList()`. `.toList()` itself (Java 16+) is
+  a shortcut for `.collect(Collectors.toList())`, returning an immutable list rather than a
+  hand-built mutable `ArrayList`.
 
 ## The three non-Java samples, briefly
 
@@ -167,4 +176,15 @@ the fix was restored, not just assumed to catch the bug. Same discipline shows u
 clojure-datomic-api's test-isolation fix. If "what does a good regression test look like" comes
 up, `KinesisBatchConsumerTest`'s zero-valid-rows test and `BatchIngestServiceTest`'s ordering
 test (`InOrder` + `ArgumentCaptor`) are the two best Java examples; clojure-datomic-api's
-`use-fixtures` story is the best non-Java one.
+`use-fixtures` story is the best non-Java one. `attachments-api` has 5 straightforward Mockito
+tests over its service layer, same shape as `catalog-api`'s.
+
+## A request collection, and what "real AWS" would look like
+
+`postman/` has a Postman/Insomnia collection covering every sample's endpoints - point someone
+there if they'd rather click through requests in a GUI than read curl commands in a README.
+Every AWS-shaped sample runs against Floci only; there's no real-AWS path built yet anywhere in
+this repo. If asked about using a real AWS account (e.g. for something Floci fundamentally can't
+emulate, like Bedrock), the answer lives in CLAUDE.md's "Real AWS as an opt-in path" section -
+the intended shape (opt-in env var, profile-based auth, never a hardcoded account) is documented
+there, but nothing has been built against it yet. Don't imply otherwise.

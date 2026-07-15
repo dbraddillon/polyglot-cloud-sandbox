@@ -61,8 +61,14 @@ the repo; just a coherent backdrop for the Java/Pulumi/cloud-emulation patterns 
   Datomic's free, fully local `dev-local` peer library — a genuine Datalog query, not a SQL/JPQL
   one. The first sample with neither Floci nor Docker: `dev-local` is embedded and in-process,
   nothing to provision at all.
+- [`samples/attachments-api`](samples/attachments-api) — CRUD over claim attachments in a real
+  S3 bucket via Floci: upload, list, download, delete. The most direct "just the core AWS SDK
+  operations" sample in the repo.
 
 More samples get added here as they're built.
+
+There's also a [Postman/Insomnia request collection](postman/) covering every sample's
+endpoints, verified end-to-end via Newman (Postman's CLI runner) while building it.
 
 ## Guided tour
 
@@ -94,7 +100,25 @@ Each sample's README has the specifics — what it deploys to, what to expect, w
 - [Pulumi CLI](https://www.pulumi.com/docs/install/)
 - Docker (samples here assume Colima on macOS, but any local Docker daemon works)
 - [Floci CLI](https://floci.io) — only needed for the AWS-shaped samples (`hello-api`,
-  `catalog-api`, `events-api`, `claims-intake-api`, `python-api`)
+  `catalog-api`, `events-api`, `claims-intake-api`, `python-api`, `attachments-api`)
 - Only needed for the polyglot samples, one each: Node ([volta](https://volta.sh) or nvm, for
   `node-api`), Python 3 (`python-api` — used only to zip/package, any Lambda-compatible version
   works locally), the [Clojure CLI](https://clojure.org/guides/install_clojure) (`clojure-datomic-api`)
+
+## Beyond Floci: when a real AWS account would matter
+
+Every AWS-shaped sample here runs against Floci — no real account, no cost, nothing to clean up
+beyond `./destroy.sh`. That's deliberate and stays the default: nothing in this repo requires a
+real AWS account to build or run.
+
+A real account only becomes relevant for the rare AWS service Floci (or any local emulator)
+genuinely can't stand in for — a GenAI model-invocation service like Bedrock is the clear
+example, since there's no meaningful way to emulate an actual foundation model locally. If a
+sample like that ever gets added here, the intended shape is: Floci stays the default for
+everything it can do, and a real-AWS path is strictly **opt-in** (an environment variable a
+`deploy.sh` checks, never a hard requirement), authenticated via a normal AWS CLI profile — never
+credentials or account details committed to this repo, and never assumed to be your `default`
+profile if you already use one for other things. If you want to try that path yourself, point it
+at a profile you're comfortable spending real (if likely near-zero, free-tier-eligible) money
+against, ideally one kept separate from anything else in your AWS account for exactly the reason
+you'd keep any sandbox separate from production.

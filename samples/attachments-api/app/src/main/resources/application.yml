@@ -1,0 +1,5 @@
+server:
+  port: 8088
+
+attachments:
+  bucket-name: ${ATTACHMENTS_BUCKET_NAME:}

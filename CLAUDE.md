@@ -6,7 +6,8 @@ production. Three deploy shapes exist side by side, chosen per-sample based on w
 
 - **AWS-shaped samples** deploy to [Floci](https://floci.io), a local AWS/Azure/GCP emulator —
   `hello-api` (Lambda + API Gateway), `catalog-api` (DynamoDB), `events-api` (SNS + SQS),
-  `claims-intake-api` (Kinesis), `python-api` (Lambda + API Gateway again, Python runtime).
+  `claims-intake-api` (Kinesis), `python-api` (Lambda + API Gateway again, Python runtime),
+  `attachments-api` (S3).
 - **Plain services** (a Spring Boot/Express app, anything that's just "a container that listens
   on a port," or a piece of infra Floci can't reliably emulate) deploy via Pulumi's Docker
   provider straight to the local Docker daemon — `task-api`, `node-api`, `claims-api` (Postgres),
@@ -41,6 +42,7 @@ samples/
   python-api/   Python 3.12 Lambda + HTTP API Gateway (same Java/Pulumi infra as hello-api), Floci
   node-api/     Express REST API (member benefit notices), local Docker (no Floci)
   clojure-datomic-api/  Clojure + Ring/Compojure over Datomic dev-local - no infra/ dir at all
+  attachments-api/  Claim attachments over S3 (upload/list/download/delete), deployed to Floci
   <next>/       same shape - pick whichever deploy story actually fits what you're building
 ```
 
@@ -228,6 +230,39 @@ Java is this repo's other constant and most readers' anchor point (e.g. Python's
 Lambda handler vs. Java's `RequestHandler<In, Out>` interface, Node's lack of a real enum type,
 Clojure having no class/object concept at all). Same restraint applies - only genuine divergence
 points, not a comment on every line.
+
+## Real AWS as an opt-in path (not yet built)
+
+Floci is the default and stays the default — every AWS-shaped sample here runs against it, no
+real account needed. A real account only becomes worth reaching for when a future sample needs
+an AWS service that genuinely has no local emulation path at all (Bedrock is the concrete
+example; unlike DynamoDB/S3/SQS/Kinesis, there's no meaningful way to fake an actual foundation
+model locally). If/when such a sample gets built, the convention to follow:
+
+- **Opt-in, never default.** A `deploy.sh` checks an environment variable (e.g.
+  `SANDBOX_TARGET=aws`) before doing anything AWS-real; unset, it behaves exactly as every
+  existing sample does today (Floci, fake creds, zero real cost). Never flip this based on
+  what's merely *available* in the environment — an explicit opt-in only.
+- **Profile-based auth, nothing hardcoded.** Reference `AWS_PROFILE` (a standard AWS CLI/SDK
+  env var, not a sandbox-specific invention) so this stays genuinely generic — works for anyone
+  with their own AWS account and their own profile name, no assumption about what that profile
+  is called or which account it points to.
+- **No secrets, account IDs, or ARNs ever committed** — not in code, not in a README example,
+  not in a commit message. If a real deploy run's output needs to be pasted anywhere for
+  documentation purposes, redact identifiers first.
+- **Don't assume `default` is a sandbox-safe profile.** A real AWS account frequently has a
+  `default` profile already pointed at production/personal resources; a sandbox path should
+  never silently target whatever `aws configure` last set up. Encourage (in whatever README
+  covers this) pointing at a profile the person deploying has deliberately set aside for this,
+  ideally a genuinely separate account (AWS Organizations makes a new member account free and
+  fast) rather than just a differently-scoped IAM user in the same account, though the latter is
+  an acceptable fallback if full account separation isn't set up yet.
+- **Cost-check every candidate service before adding real-AWS support for it.** Near-zero/
+  free-tier-friendly for a quick create-verify-destroy cycle: S3, Lambda + API Gateway, DynamoDB,
+  SNS/SQS. Genuinely risky if left running even briefly: Kinesis (per-shard-hour billing
+  regardless of usage), OpenSearch Service and RDS (already Docker-only in this repo for exactly
+  this reason - see the Floci OpenSearch/RDS findings above). Don't add a real-AWS path for a
+  service in the second bucket without calling out the cost risk explicitly.
 
 ## Prerequisites
 

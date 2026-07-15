@@ -1,0 +1,3 @@
+name: attachments-api
+description: Sample - claim attachment storage over S3, emulated by Floci
+runtime: java

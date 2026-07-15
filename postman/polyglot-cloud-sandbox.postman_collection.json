@@ -1,0 +1,349 @@
+{
+  "info": {
+    "_postman_id": "b7e6d6b0-6b1b-4b1a-9b0a-polyglotsandbox",
+    "name": "polyglot-cloud-sandbox",
+    "description": "One request collection covering every sample's endpoints. Start whichever sample's ./deploy.sh you want to exercise first, then run its folder here - each one is a self-contained, runnable flow (create -> read -> update -> delete, in that order), with the create requests' Tests scripts auto-capturing ids into collection variables so the follow-up requests just work. Imports natively into Postman; Insomnia can import this file directly too (Insomnia's own importer reads Postman v2.1 collections).\n\nhello-api and python-api are the two exceptions: their invoke URL includes a Pulumi-generated API id that's different on every deploy, so their folders use empty {{hello_api_invoke_url}}/{{python_api_invoke_url}} variables - copy the \"Local invoke URL\" line deploy.sh prints and paste it into that collection variable (Postman: collection > Variables tab) before running those two requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "hello_api_invoke_url", "value": "", "description": "Paste deploy.sh's printed local invoke URL here" },
+    { "key": "task_api_url", "value": "http://localhost:8080" },
+    { "key": "search_api_url", "value": "http://localhost:8081" },
+    { "key": "catalog_api_url", "value": "http://localhost:8082" },
+    { "key": "claims_api_url", "value": "http://localhost:8083" },
+    { "key": "events_api_url", "value": "http://localhost:8084" },
+    { "key": "claims_intake_api_url", "value": "http://localhost:8085" },
+    { "key": "node_api_url", "value": "http://localhost:8086" },
+    { "key": "clojure_datomic_api_url", "value": "http://localhost:8087" },
+    { "key": "attachments_api_url", "value": "http://localhost:8088" },
+    { "key": "python_api_invoke_url", "value": "", "description": "Paste deploy.sh's printed local invoke URL here" },
+    { "key": "task_id", "value": "" },
+    { "key": "plan_id", "value": "" },
+    { "key": "claim_id", "value": "" },
+    { "key": "document_id", "value": "" },
+    { "key": "event_id", "value": "" },
+    { "key": "batch_id", "value": "" },
+    { "key": "notice_id", "value": "" },
+    { "key": "provider_id", "value": "" },
+    { "key": "attachment_key", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "hello-api",
+      "description": "Lambda + API Gateway via Floci. Run ./deploy.sh, copy its printed local invoke URL into the hello_api_invoke_url collection variable.",
+      "item": [
+        {
+          "name": "Greet",
+          "request": { "method": "GET", "url": "{{hello_api_invoke_url}}?name=Postman" }
+        }
+      ]
+    },
+    {
+      "name": "task-api",
+      "item": [
+        {
+          "name": "List tasks",
+          "request": { "method": "GET", "url": "{{task_api_url}}/tasks" }
+        },
+        {
+          "name": "Create task",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('task_id', json.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{task_api_url}}/tasks",
+            "body": { "mode": "raw", "raw": "{\"title\": \"Schedule annual wellness visit\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Get task",
+          "request": { "method": "GET", "url": "{{task_api_url}}/tasks/{{task_id}}" }
+        },
+        {
+          "name": "Move to IN_PROGRESS",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{task_api_url}}/tasks/{{task_id}}/status",
+            "body": { "mode": "raw", "raw": "{\"status\": \"IN_PROGRESS\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Move to DONE",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{task_api_url}}/tasks/{{task_id}}/status",
+            "body": { "mode": "raw", "raw": "{\"status\": \"DONE\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Delete task",
+          "request": { "method": "DELETE", "url": "{{task_api_url}}/tasks/{{task_id}}" }
+        }
+      ]
+    },
+    {
+      "name": "search-api",
+      "item": [
+        {
+          "name": "Index a document",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('document_id', json.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{search_api_url}}/documents",
+            "body": { "mode": "raw", "raw": "{\"title\": \"Annual wellness visit guidance\", \"body\": \"What to expect at your annual checkup.\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Get document",
+          "request": { "method": "GET", "url": "{{search_api_url}}/documents/{{document_id}}" }
+        },
+        {
+          "name": "Search documents",
+          "request": { "method": "GET", "url": "{{search_api_url}}/documents/search?q=wellness" }
+        }
+      ]
+    },
+    {
+      "name": "catalog-api",
+      "item": [
+        {
+          "name": "List plans",
+          "request": { "method": "GET", "url": "{{catalog_api_url}}/plans" }
+        },
+        {
+          "name": "Create plan",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('plan_id', json.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{catalog_api_url}}/plans",
+            "body": { "mode": "raw", "raw": "{\"name\": \"Silver PPO Plan\", \"monthlyPremium\": 399.00}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Get plan",
+          "request": { "method": "GET", "url": "{{catalog_api_url}}/plans/{{plan_id}}" }
+        },
+        {
+          "name": "Update plan",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{catalog_api_url}}/plans/{{plan_id}}",
+            "body": { "mode": "raw", "raw": "{\"name\": \"Silver PPO Plan\", \"monthlyPremium\": 425.00}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Delete plan",
+          "request": { "method": "DELETE", "url": "{{catalog_api_url}}/plans/{{plan_id}}" }
+        }
+      ]
+    },
+    {
+      "name": "claims-api",
+      "item": [
+        {
+          "name": "List claims",
+          "request": { "method": "GET", "url": "{{claims_api_url}}/claims" }
+        },
+        {
+          "name": "Create claim",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('claim_id', json.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{claims_api_url}}/claims",
+            "body": { "mode": "raw", "raw": "{\"memberName\": \"Jordan Rivera\", \"lineItems\": [{\"serviceDescription\": \"Annual wellness visit\", \"billedAmount\": 182.50}]}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Get claim",
+          "request": { "method": "GET", "url": "{{claims_api_url}}/claims/{{claim_id}}" }
+        },
+        {
+          "name": "Approve claim",
+          "request": { "method": "POST", "url": "{{claims_api_url}}/claims/{{claim_id}}/approve" }
+        }
+      ]
+    },
+    {
+      "name": "events-api",
+      "item": [
+        {
+          "name": "Publish event",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('event_id', json.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{events_api_url}}/events",
+            "body": { "mode": "raw", "raw": "{\"type\": \"claim.submitted\", \"payload\": \"claim-123\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "List processed events",
+          "request": { "method": "GET", "url": "{{events_api_url}}/events" }
+        },
+        {
+          "name": "Get event (poll until processed - may 404 briefly)",
+          "request": { "method": "GET", "url": "{{events_api_url}}/events/{{event_id}}" }
+        }
+      ]
+    },
+    {
+      "name": "claims-intake-api",
+      "item": [
+        {
+          "name": "List batches",
+          "request": { "method": "GET", "url": "{{claims_intake_api_url}}/claims-intake" }
+        },
+        {
+          "name": "Upload a small CSV (streamed synchronously)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('batch_id', json.batchId);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{claims_intake_api_url}}/claims-intake",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": "Select a small CSV - see the sample's deploy.sh for the generated column layout (claimId,memberId,serviceDate,serviceDescription,billedAmount)" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get batch status",
+          "request": { "method": "GET", "url": "{{claims_intake_api_url}}/claims-intake/{{batch_id}}" }
+        }
+      ]
+    },
+    {
+      "name": "python-api",
+      "description": "Same Lambda + API Gateway shape as hello-api, Python runtime. Run ./deploy.sh, paste its printed invoke URL into python_api_invoke_url.",
+      "item": [
+        {
+          "name": "Greet",
+          "request": { "method": "GET", "url": "{{python_api_invoke_url}}?name=Postman" }
+        }
+      ]
+    },
+    {
+      "name": "node-api",
+      "item": [
+        {
+          "name": "List notices",
+          "request": { "method": "GET", "url": "{{node_api_url}}/notices" }
+        },
+        {
+          "name": "Create notice",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('notice_id', json.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{node_api_url}}/notices",
+            "body": { "mode": "raw", "raw": "{\"message\": \"Annual wellness visit reminder\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Get notice",
+          "request": { "method": "GET", "url": "{{node_api_url}}/notices/{{notice_id}}" }
+        },
+        {
+          "name": "Send notice",
+          "request": { "method": "PATCH", "url": "{{node_api_url}}/notices/{{notice_id}}/send" }
+        },
+        {
+          "name": "Delete notice",
+          "request": { "method": "DELETE", "url": "{{node_api_url}}/notices/{{notice_id}}" }
+        }
+      ]
+    },
+    {
+      "name": "clojure-datomic-api",
+      "item": [
+        {
+          "name": "List providers",
+          "request": { "method": "GET", "url": "{{clojure_datomic_api_url}}/providers" }
+        },
+        {
+          "name": "Create provider",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('provider_id', json.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{clojure_datomic_api_url}}/providers",
+            "body": { "mode": "raw", "raw": "{\"name\": \"Dr. Alvarez\", \"specialty\": \"Cardiology\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Get provider",
+          "request": { "method": "GET", "url": "{{clojure_datomic_api_url}}/providers/{{provider_id}}" }
+        },
+        {
+          "name": "Search by specialty",
+          "request": { "method": "GET", "url": "{{clojure_datomic_api_url}}/providers/search?specialty=Cardiology" }
+        }
+      ]
+    },
+    {
+      "name": "attachments-api",
+      "item": [
+        {
+          "name": "List attachments",
+          "request": { "method": "GET", "url": "{{attachments_api_url}}/attachments" }
+        },
+        {
+          "name": "Upload attachment",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('attachment_key', json.key);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{attachments_api_url}}/attachments",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": "Select any small file to upload" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download attachment",
+          "request": { "method": "GET", "url": "{{attachments_api_url}}/attachments/{{attachment_key}}" }
+        },
+        {
+          "name": "Delete attachment",
+          "request": { "method": "DELETE", "url": "{{attachments_api_url}}/attachments/{{attachment_key}}" }
+        }
+      ]
+    }
+  ]
+}
