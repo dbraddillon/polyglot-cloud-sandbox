@@ -179,6 +179,14 @@ test (`InOrder` + `ArgumentCaptor`) are the two best Java examples; clojure-dato
 `use-fixtures` story is the best non-Java one. `attachments-api` has 5 straightforward Mockito
 tests over its service layer, same shape as `catalog-api`'s.
 
+`task-api` is the one sample tested from two directions at once: JUnit from the inside, plus a
+black-box Ruby/Cucumber suite (`task-api/service-tests/`) driving the same behavior purely over
+HTTP — point someone here for what a service-level (as opposed to unit) test suite looks like, or
+if they know SpecFlow from .NET and want the closest analogue. Building it surfaced a genuine,
+non-obvious macOS toolchain bug (Ruby 4.x's C23 header shim breaking native gem extensions under
+current Apple clang — see CLAUDE.md's macOS gotchas), diagnosed and worked around the same
+evidence-first way as every other bug in this repo: read the actual compiler log, don't guess.
+
 ## A request collection, and what "real AWS" would look like
 
 `postman/` has a Postman/Insomnia collection covering every sample's endpoints - point someone

@@ -1,0 +1,11 @@
+source "https://rubygems.org"
+
+# Cucumber itself, plus its own suggested test-double for readable assertions
+# (expect(x).to eq(y)) - Cucumber doesn't ship an assertion library, unlike JUnit bundling
+# assertEquals directly.
+gem "cucumber"
+gem "rspec-expectations"
+
+# A small, standard HTTP client - the Ruby equivalent of reaching for RestClient/HttpClient in
+# C# rather than hand-rolling raw socket code.
+gem "httparty"

@@ -222,6 +222,15 @@ with no `pom.xml` of its own at all.
   resolution. Samples that run the app directly (not containerized — search-api, catalog-api,
   events-api) check for this in `deploy.sh` and fall back to
   `/opt/homebrew/opt/openjdk@21/bin/java` or `$JAVA_HOME`.
+- **Homebrew's plain `ruby` formula (4.x) can't build native gem extensions under current Apple
+  clang (16.x).** Ruby 3.4+ added a C23 `stdckdint.h` compatibility shim to its own headers
+  (`ruby/internal/stdckdint.h`) that checks `__has_include(<stdckdint.h>)` — under this clang
+  version that check self-matches the shim's own file via quote-style fallback, then the literal
+  `#include <stdckdint.h>` fails ("file not found with <angled> include; use "quotes" instead").
+  Breaks *any* native-extension gem (`bigdecimal`, pulled in transitively by `cucumber`, is just
+  the first one task-api's `service-tests/` hit), not something specific to one gem. `ruby@3.3`
+  (`brew install ruby@3.3`, keg-only, doesn't fight the `ruby` formula) predates the shim and
+  isn't affected — `service-tests/run.sh` looks for it specifically.
 
 **Every sample:**
 - **Pulumi state is local per-sample, not Pulumi Cloud.** `PULUMI_BACKEND_URL=file://.../infra/.pulumi-state`

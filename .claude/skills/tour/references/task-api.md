@@ -54,3 +54,21 @@ Floci itself runs on). Pulumi's Docker provider builds the image and runs the co
 Runs on `http://localhost:8080`. Kubernetes is the natural next step and deliberately not done
 here (no local k8s cluster on this machine yet) — the image this sample builds is exactly what a
 `Deployment` would reference whenever that changes.
+
+## Service-level tests (Ruby + Cucumber)
+
+`service-tests/` is the one sample in this repo tested from two directions: the JUnit suite
+under `app/src/test` exercises the code from the inside, and `service-tests/` is a black-box
+Gherkin/Cucumber suite (`features/task_lifecycle.feature` + Ruby step definitions using
+`httparty`) that drives the same behavior purely over HTTP, the way a QA suite or a Postman
+collection would. Worth a look for readers who haven't seen Cucumber before — SpecFlow is the
+closest .NET equivalent (same Gherkin `.feature` files, C# step definitions instead of Ruby).
+
+```
+./deploy.sh                 # start task-api first
+cd service-tests && ./run.sh
+```
+
+Needs Homebrew's `ruby@3.3` specifically, not the plain `ruby` formula — see the "macOS" gotcha
+in root `CLAUDE.md` for why (Ruby 4.x's C23 header shim breaks native gem extensions under
+current Apple clang; `ruby@3.3` predates it).
