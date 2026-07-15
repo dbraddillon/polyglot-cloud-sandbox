@@ -204,3 +204,12 @@ someone here for "what does a CI pipeline look like running against one of these
 they're wondering why CircleCI (also on the manager's original tool list) doesn't have a matching
 setup - it's cloud-only with no meaningful local-execution story, so Jenkins alone covers that
 list item.
+
+`tools/jfrog-artifactory/` is the same kind of tool setup, one layer deeper: local Artifactory OSS
++ a real Postgres (current Artifactory refuses to even boot on its embedded Derby DB anymore),
+building `task-api`'s actual jar, publishing it via `mvn deploy:deploy-file`, then pulling it back
+down and comparing SHA-256 to prove the round-trip is real. Worth pointing to for the OSS-tier
+gotcha found along the way: Artifactory's own repository-*management* REST API (creating or
+reconfiguring a repo) is Pro-gated, confirmed directly rather than assumed - so this publishes to
+the repo OSS ships with out of the box instead of fighting that wall, which still fully
+demonstrates the "publish and retrieve a real artifact" capability the tool is there to show.

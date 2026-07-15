@@ -47,6 +47,7 @@ samples/
 
 tools/          Local dev-tool setups that aren't a "sample" of a deploy pattern - see below
   jenkins/      Local Jenkins running a real pipeline against task-api's JUnit suite
+  jfrog-artifactory/  Local Artifactory OSS + Postgres, publishes+verifies task-api's real jar
 ```
 
 Every sample has roughly the same internal shape - `app/` (the service), `infra/` (a Pulumi
@@ -256,6 +257,20 @@ tool standing itself up.
   `casc.yaml` actually land in `/var/jenkins_home` on first boot — and why its `destroy.sh` removes
   the volume, not just the container, so every `deploy.sh` run is a genuinely clean, reproducible
   boot instead of silently reusing the previous run's `JENKINS_HOME` state.
+- **JFrog Artifactory OSS (current release, 7.111.x) refuses to start on its own embedded Derby
+  database at all anymore** — a hard `IllegalStateException: Cannot start the application with a
+  database other than PostgreSQL`, not a soft deprecation warning. `tools/jfrog-artifactory/`
+  runs a real `postgres:16` alongside it on a shared network, same container-name-DNS pattern as
+  `claims-api`. It also refuses to boot without a pre-generated master key
+  (`Failed resolving MasterKey key`) — generated fresh each `deploy.sh` run via `openssl rand`.
+- **Artifactory OSS's repository-management REST API is Pro-gated, not just missing features.**
+  Every `PUT`/`POST /api/repositories/<key>` call — create or update, and even the legacy
+  full-config-import endpoint — 400s with `"This REST API is available only in Artifactory
+  Pro"`, confirmed directly (reading an existing repo's config works fine, only create/update is
+  blocked). `tools/jfrog-artifactory/` publishes to the repo OSS ships with by default
+  (`example-repo-local`) instead of fighting that wall — it's typed "generic" rather than
+  "maven" in Artifactory's own UI sense, but a real Maven-layout deploy/retrieve (what `mvn
+  deploy` actually does on the wire) works identically either way.
 
 **Every sample:**
 - **Pulumi state is local per-sample, not Pulumi Cloud.** `PULUMI_BACKEND_URL=file://.../infra/.pulumi-state`

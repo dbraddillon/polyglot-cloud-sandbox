@@ -7,3 +7,4 @@ dependency-reduced-pom.xml
 .claude/scheduled_tasks.lock
 node_modules/
 .cpcache/
+tools/jfrog-artifactory/var/

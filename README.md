@@ -72,9 +72,10 @@ alongside its JUnit tests — Gherkin scenarios driving the same behavior purely
 a QA suite would.
 
 There's also a [Postman/Insomnia request collection](postman/) covering every sample's
-endpoints, verified end-to-end via Newman (Postman's CLI runner) while building it, and a local
+endpoints, verified end-to-end via Newman (Postman's CLI runner) while building it, a local
 [Jenkins CI setup](tools/jenkins) running a real pipeline (clone the repo, `mvn test`) against
-`task-api`.
+`task-api`, and a local [JFrog Artifactory setup](tools/jfrog-artifactory) that publishes
+`task-api`'s real jar and verifies it byte-for-byte on the way back down.
 
 ## Guided tour
 
