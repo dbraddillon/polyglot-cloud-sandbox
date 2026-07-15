@@ -112,6 +112,22 @@ with no `pom.xml` of its own at all.
   entirely). RDS's Postgres container is real and healthy but kept off the host network
   entirely by design, unreachable from anything not on Floci's internal Docker network
   (claims-api works around this the same way — plain Postgres via Docker, no Floci).
+- **AWS Batch is a pure control-plane stub on Floci — no sample built against it for this
+  reason.** Unlike OpenSearch/RDS (which run a real backing engine with a narrower gap) or
+  Lambda (which genuinely executes the given runtime), Batch fakes the whole job lifecycle:
+  `create-compute-environment`/`create-job-queue`/`register-job-definition` all succeed and
+  report healthy status immediately, and `submit-job` reports `SUCCEEDED` in ~12ms — but
+  confirmed directly that no container was ever created on the Docker daemon (`docker ps -a`
+  showed nothing) and no `/aws/batch/job` CloudWatch log group exists at all. The job's declared
+  command never actually runs; the API just reports success unconditionally. On top of that,
+  `update-job-queue`/`delete-job-queue`/`delete-compute-environment` are separately broken,
+  returning an S3-flavored `InvalidArgument: POST requires either ?uploads, ?uploadId...` error
+  regardless of correct CLI usage — confirmed this isn't a usage mistake by checking the CLI's
+  own `help` output first. A real batch-processing sample would need actual container execution
+  to be worth building at all (the whole point of AWS Batch is running your job's container),
+  so this one isn't a Docker-provider-workaround candidate the way OpenSearch/RDS were — there's
+  nothing genuine underneath to fall back to on Floci's side. Skipped rather than built as a
+  misleading "works" sample.
 - **Floci's container lifecycle is machine-wide, not per-sample.** A separate pair of scripts
   (`~/floci-sandbox/start.sh` / `stop.sh` — adjust the path in `deploy.sh` if you're setting
   this up elsewhere) manage the actual Colima + Floci container and its persisted emulator
