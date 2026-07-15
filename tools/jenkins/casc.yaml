@@ -1,0 +1,32 @@
+jenkins:
+  systemMessage: "polyglot-cloud-sandbox local Jenkins - throwaway, local-only, not internet-exposed."
+  numExecutors: 2
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+# Job DSL, not a hand-clicked job - `jobs:` here is the Configuration as Code plugin's hook to run
+# a Job DSL script at startup, so the pipeline job exists the moment Jenkins comes up. Points at
+# the real public GitHub repo (not a local bind mount) so this behaves like an actual CI setup
+# would: clone, build, test, report - not a shortcut special-cased for this machine.
+jobs:
+  - script: >
+      pipelineJob('task-api-ci') {
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('https://github.com/dbraddillon/polyglot-cloud-sandbox.git') }
+                branch('*/main')
+              }
+            }
+            scriptPath('tools/jenkins/Jenkinsfile')
+          }
+        }
+      }

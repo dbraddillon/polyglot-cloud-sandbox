@@ -1,0 +1,21 @@
+// Declarative Pipeline - Jenkins' own DSL for CI/CD stages, roughly the same role a
+// azure-pipelines.yml or GitHub Actions workflow.yml plays, just Groovy-flavored instead of YAML.
+pipeline {
+    agent any
+
+    stages {
+        stage('Build & test task-api') {
+            steps {
+                dir('samples/task-api/app') {
+                    sh 'mvn -B clean test'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit 'samples/task-api/app/target/surefire-reports/*.xml'
+        }
+    }
+}
