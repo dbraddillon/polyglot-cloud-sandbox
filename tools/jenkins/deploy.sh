@@ -54,12 +54,15 @@ if [ -z "$BUILD_URL" ]; then
 fi
 
 echo "Waiting for the build to finish..."
+# grep, not a full JSON parse - the build's changeSet/description fields can carry raw control
+# characters (commit messages, etc.) that trip a strict JSON decoder even though the specific
+# field being read here is always a clean token.
 for _ in $(seq 1 60); do
-  BUILDING=$(curl -s -u "admin:$ADMIN_PASSWORD" "$BUILD_URL/api/json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["building"])')
-  [ "$BUILDING" = "False" ] && break
+  BUILDING=$(curl -s -u "admin:$ADMIN_PASSWORD" "$BUILD_URL/api/json" | grep -o '"building":[a-z]*' | cut -d: -f2)
+  [ "$BUILDING" = "false" ] && break
   sleep 3
 done
 
-RESULT=$(curl -s -u "admin:$ADMIN_PASSWORD" "$BUILD_URL/api/json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["result"])')
+RESULT=$(curl -s -u "admin:$ADMIN_PASSWORD" "$BUILD_URL/api/json" | grep -o '"result":"[A-Z]*"' | cut -d'"' -f4)
 echo "Build result: $RESULT"
 echo "Console log: $BUILD_URL/consoleText"

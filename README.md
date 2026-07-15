@@ -67,8 +67,14 @@ the repo; just a coherent backdrop for the Java/Pulumi/cloud-emulation patterns 
 
 More samples get added here as they're built.
 
+`samples/task-api` also has a black-box [Ruby + Cucumber service-level test suite](samples/task-api/service-tests)
+alongside its JUnit tests — Gherkin scenarios driving the same behavior purely over HTTP, the way
+a QA suite would.
+
 There's also a [Postman/Insomnia request collection](postman/) covering every sample's
-endpoints, verified end-to-end via Newman (Postman's CLI runner) while building it.
+endpoints, verified end-to-end via Newman (Postman's CLI runner) while building it, and a local
+[Jenkins CI setup](tools/jenkins) running a real pipeline (clone the repo, `mvn test`) against
+`task-api`.
 
 ## Guided tour
 

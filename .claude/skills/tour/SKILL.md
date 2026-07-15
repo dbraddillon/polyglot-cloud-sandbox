@@ -196,3 +196,11 @@ this repo. If asked about using a real AWS account (e.g. for something Floci fun
 emulate, like Bedrock), the answer lives in CLAUDE.md's "Real AWS as an opt-in path" section -
 the intended shape (opt-in env var, profile-based auth, never a hardcoded account) is documented
 there, but nothing has been built against it yet. Don't imply otherwise.
+
+`tools/jenkins/` is the first thing in this repo that isn't a "sample" at all - a local Jenkins,
+seeded fully via Configuration as Code + Job DSL (no setup wizard, no hand-clicked job), running
+a real pipeline that clones the actual public GitHub repo and runs `task-api`'s JUnit suite. Point
+someone here for "what does a CI pipeline look like running against one of these samples," or if
+they're wondering why CircleCI (also on the manager's original tool list) doesn't have a matching
+setup - it's cloud-only with no meaningful local-execution story, so Jenkins alone covers that
+list item.

@@ -44,6 +44,9 @@ samples/
   clojure-datomic-api/  Clojure + Ring/Compojure over Datomic dev-local - no infra/ dir at all
   attachments-api/  Claim attachments over S3 (upload/list/download/delete), deployed to Floci
   <next>/       same shape - pick whichever deploy story actually fits what you're building
+
+tools/          Local dev-tool setups that aren't a "sample" of a deploy pattern - see below
+  jenkins/      Local Jenkins running a real pipeline against task-api's JUnit suite
 ```
 
 Every sample has roughly the same internal shape - `app/` (the service), `infra/` (a Pulumi
@@ -86,6 +89,15 @@ Steps 2-3 assume the sample's `app/` is Java, which is the common case. For a no
 `dev.sandbox.lab.<newname>.infra` repackaging and `pom.xml`/`mainClass` update — `app/` follows
 that language's own conventions instead (a `deps.edn`, a `package.json`, whatever's idiomatic),
 with no `pom.xml` of its own at all.
+
+## Local tool setups (`tools/`)
+
+Not every item worth demonstrating is a deploy-pattern "sample." Some are dev tooling that
+exercises an *existing* sample rather than being one itself — `tools/jenkins/` is the first: a
+local Jenkins running a real pipeline against `task-api`'s JUnit suite, with no app/infra of its
+own. These get their own `deploy.sh`/`destroy.sh` (same single-command bar as every sample) but
+live under `tools/`, not `samples/`, since there's no deploy-shape decision being made — just a
+tool standing itself up.
 
 ## Common gotchas
 
@@ -231,6 +243,19 @@ with no `pom.xml` of its own at all.
   the first one task-api's `service-tests/` hit), not something specific to one gem. `ruby@3.3`
   (`brew install ruby@3.3`, keg-only, doesn't fight the `ruby` formula) predates the shim and
   isn't affected — `service-tests/run.sh` looks for it specifically.
+
+**Local tool setups (`tools/`):**
+- **Jenkins rejects state-changing REST calls (like triggering a build) without a CSRF crumb by
+  default**, and forwarding a fetched crumb via `/crumbIssuer/api/json` or `/crumbIssuer/api/xml`
+  still 403'd here. `tools/jenkins/` disables CSRF checking outright
+  (`-Dhudson.security.csrf.GlobalCrumbIssuerConfiguration.DISABLE_CSRF_PROTECTION=true`) rather
+  than keep chasing crumb/session semantics — reasonable for a Jenkins that's local-only and never
+  internet-exposed, not a setting to carry into anything real.
+- **A named Docker volume mounted over a directory that already has content in the image gets
+  seeded from that content on first use.** This is what makes `tools/jenkins/`'s baked-in
+  `casc.yaml` actually land in `/var/jenkins_home` on first boot — and why its `destroy.sh` removes
+  the volume, not just the container, so every `deploy.sh` run is a genuinely clean, reproducible
+  boot instead of silently reusing the previous run's `JENKINS_HOME` state.
 
 **Every sample:**
 - **Pulumi state is local per-sample, not Pulumi Cloud.** `PULUMI_BACKEND_URL=file://.../infra/.pulumi-state`
