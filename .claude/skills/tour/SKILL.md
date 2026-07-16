@@ -131,7 +131,7 @@ each file and quote the real surrounding lines rather than just reading this lis
 - **Java's closest thing to a C# discriminated union**: `samples/claims-intake-api/app/.../ClaimStreamMessage.java:5-11`
   — deliberately *not* used here (a flat tagged record instead, to stay Jackson-friendly), with
   the tradeoff spelled out in the comment.
-- **A trap that would never bite a C# dev**: `samples/claims-intake-api/app/src/test/.../ClaimStreamMessageTest.java:69-74`
+- **A trap that would never bite a C# dev**: `samples/claims-intake-api/app/src/test/.../ClaimStreamMessageTest.java:68-73`
   — Jackson has no built-in `java.time` support and throws without `JavaTimeModule` registered;
   `System.Text.Json` just handles `DateOnly`/`DateTime` out of the box. Confirmed the exact
   exception empirically rather than assumed, if that level of detail comes up.

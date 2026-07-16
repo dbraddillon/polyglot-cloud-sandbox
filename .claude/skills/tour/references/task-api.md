@@ -41,8 +41,11 @@ Floci itself runs on). Pulumi's Docker provider builds the image and runs the co
   what to inject (classpath scanning via `@Repository`/`@Service`/`@Component`) vs. .NET's
   explicit `services.AddScoped<T>()` registration — worth pointing out since it's the kind of
   "magic" that trips people up moving from explicit DI registration to classpath scanning.
-- `infra/.../App.java:15` — the comment frames this sample directly: "build the image and run
-  it like you would an ASP.NET Core Web API," as opposed to `hello-api`'s AWS-emulator path.
+- `infra/.../App.java:20-21` — the comment frames this sample directly: "build the image and
+  run it like you would an ASP.NET Core Web API," as opposed to `hello-api`'s AWS-emulator path.
+  (Line moved down from the original `:15` once the Datadog agent's imports/wiring were added
+  above it — a live example of exactly the kind of drift this tour's file:line references need
+  rechecking against periodically.)
 
 ## Running it
 
