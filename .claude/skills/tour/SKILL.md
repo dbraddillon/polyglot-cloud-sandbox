@@ -224,3 +224,25 @@ real HTTP traffic), and a genuinely sneaky Spring Boot 3.x gotcha where the *old
 tutorialed StatsD config property silently no-ops with zero error output. See task-api's README
 "Metrics (Datadog)" section for the full story, including the Colima UDP-forwarding gotcha this
 also surfaced.
+
+## Setup, and what's actually been verified cross-platform
+
+`floci/start.sh`/`stop.sh` (repo root) are the bundled Colima + Floci lifecycle scripts every
+Floci-based sample's `deploy.sh` calls - worth mentioning if anyone asks "how does Floci actually
+get started," since these used to live only as a hand-authored, unversioned pair of scripts on
+one machine, not something a fresh clone of this repo gave you. Found and fixed alongside that: a
+real, previously-silent bug where `floci status`'s exit code is always 0 even when the container
+is stopped, so the old `if ! floci status` auto-start check never actually fired - it just looked
+like it worked, because Floci happened to already be running for most of this repo's own
+development. Fixed by checking the `reachable` field from `floci status -o json` instead, and
+verified by a genuine cold-start deploy (Floci stopped, `docker ps` confirmed, then `./deploy.sh`
+correctly detected it and started it).
+
+Built and run on macOS only - if asked about Windows, Rancher Desktop, Podman, or a real AWS
+account instead of Floci, the honest answer for each: Windows needs WSL2 (no native path, and
+Colima itself doesn't run on Windows); Rancher Desktop/Podman are plausible Docker-daemon swaps
+for Colima but untested here (only `floci/start.sh` itself would need adapting, not the samples);
+real AWS is a legitimate opt-in alternative to Floci for the rare thing Floci can't emulate at all
+(Bedrock is the standing example), but nothing's built against it yet - see CLAUDE.md's "Real AWS
+as an opt-in path" and the Prerequisites section's "Platform honesty" note for the full framing.
+Don't present any of the three untested paths as more solid than they are.

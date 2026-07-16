@@ -4,9 +4,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-if ! floci status >/dev/null 2>&1; then
+# floci status always exits 0 regardless of whether the container is actually reachable - the
+# -o json "reachable" field is the only reliable signal; confirmed directly after this silently
+# skipped starting Floci on a stopped container and Pulumi failed downstream with a confusing
+# "unable to validate AWS credentials" error instead.
+if ! floci status -o json 2>/dev/null | grep -q '"reachable" : true'; then
   echo "Floci not running, starting it..."
-  "$HOME/floci-sandbox/start.sh"
+  "../../floci/start.sh"
 fi
 
 mkdir -p infra/.pulumi-state

@@ -3,9 +3,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-if ! floci status >/dev/null 2>&1; then
+# floci status always exits 0 regardless of whether the container is actually reachable - the
+# -o json "reachable" field is the only reliable signal; confirmed directly after this silently
+# skipped starting Floci on a stopped container and Pulumi failed downstream with a confusing
+# "unable to validate AWS credentials" error instead.
+if ! floci status -o json 2>/dev/null | grep -q '"reachable" : true'; then
   echo "Floci not running, starting it..."
-  "$HOME/floci-sandbox/start.sh"
+  "../../floci/start.sh"
 fi
 
 echo "Building the jar..."
@@ -19,7 +23,12 @@ mkdir -p infra/.pulumi-state .run
 JAVA_BIN="java"
 if ! java -version >/dev/null 2>&1; then
   if [ -x /opt/homebrew/opt/openjdk@21/bin/java ]; then
+    # Apple Silicon Homebrew prefix.
     JAVA_BIN=/opt/homebrew/opt/openjdk@21/bin/java
+  elif [ -x /usr/local/opt/openjdk@21/bin/java ]; then
+    # Intel Mac Homebrew prefix - easy to forget since Apple Silicon is the common case now,
+    # but /usr/local is still where Homebrew installs on x86_64 Macs.
+    JAVA_BIN=/usr/local/opt/openjdk@21/bin/java
   elif [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
     JAVA_BIN="$JAVA_HOME/bin/java"
   else

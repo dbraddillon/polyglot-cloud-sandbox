@@ -106,12 +106,20 @@ Each sample's README has the specifics — what it deploys to, what to expect, w
 
 - JDK 21, Maven
 - [Pulumi CLI](https://www.pulumi.com/docs/install/)
-- Docker (samples here assume Colima on macOS, but any local Docker daemon works)
+- Docker — `floci/start.sh` (bundled in this repo) manages Colima specifically, but nothing in
+  the samples themselves cares which Docker daemon it talks to
 - [Floci CLI](https://floci.io) — only needed for the AWS-shaped samples (`hello-api`,
   `catalog-api`, `events-api`, `claims-intake-api`, `python-api`, `attachments-api`)
 - Only needed for the polyglot samples, one each: Node ([volta](https://volta.sh) or nvm, for
   `node-api`), Python 3 (`python-api` — used only to zip/package, any Lambda-compatible version
   works locally), the [Clojure CLI](https://clojure.org/guides/install_clojure) (`clojure-datomic-api`)
+
+**Platform honesty**: built and run on macOS only. Every script is bash — Windows needs WSL2,
+there's no native path, and Colima itself doesn't run on Windows regardless. Should work
+unmodified on Linux or inside WSL2 (same bash, same Docker daemon), just not verified hands-on.
+Rancher Desktop/Podman Desktop are plausible Docker-daemon swaps for Colima, but neither has
+been tested against this repo — only `floci/start.sh` itself would need adjusting for either
+(different start/status commands), nothing in the samples cares which daemon is underneath.
 
 ## Beyond Floci: when a real AWS account would matter
 

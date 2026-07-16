@@ -21,8 +21,14 @@ fi
 RUBY_BIN="ruby"
 BUNDLE_BIN="bundle"
 if [ -x /opt/homebrew/opt/ruby@3.3/bin/ruby ]; then
+  # Apple Silicon Homebrew prefix.
   RUBY_BIN=/opt/homebrew/opt/ruby@3.3/bin/ruby
   BUNDLE_BIN=/opt/homebrew/opt/ruby@3.3/bin/bundle
+elif [ -x /usr/local/opt/ruby@3.3/bin/ruby ]; then
+  # Intel Mac Homebrew prefix - hits the same Apple clang/stdckdint.h bug above, since it's the
+  # same compiler toolchain regardless of Mac architecture.
+  RUBY_BIN=/usr/local/opt/ruby@3.3/bin/ruby
+  BUNDLE_BIN=/usr/local/opt/ruby@3.3/bin/bundle
 elif ! ruby -e 'exit(RUBY_VERSION.split(".").first.to_i >= 3 ? 0 : 1)' >/dev/null 2>&1; then
   echo "No usable Ruby found. Install one, e.g. 'brew install ruby@3.3' (plain 'brew install ruby'" >&2
   echo "gets you 4.x, which hits a native-extension header bug on current Apple clang - see" >&2

@@ -15,7 +15,12 @@ mkdir -p infra/.pulumi-state .run
 JAVA_BIN="java"
 if ! java -version >/dev/null 2>&1; then
   if [ -x /opt/homebrew/opt/openjdk@21/bin/java ]; then
+    # Apple Silicon Homebrew prefix.
     JAVA_BIN=/opt/homebrew/opt/openjdk@21/bin/java
+  elif [ -x /usr/local/opt/openjdk@21/bin/java ]; then
+    # Intel Mac Homebrew prefix - easy to forget since Apple Silicon is the common case now,
+    # but /usr/local is still where Homebrew installs on x86_64 Macs.
+    JAVA_BIN=/usr/local/opt/openjdk@21/bin/java
   elif [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
     JAVA_BIN="$JAVA_HOME/bin/java"
   else

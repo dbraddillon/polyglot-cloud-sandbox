@@ -45,6 +45,7 @@ samples/
   attachments-api/  Claim attachments over S3 (upload/list/download/delete), deployed to Floci
   <next>/       same shape - pick whichever deploy story actually fits what you're building
 
+floci/          start.sh/stop.sh - Colima + Floci lifecycle, shared by every Floci-based sample
 tools/          Local dev-tool setups that aren't a "sample" of a deploy pattern - see below
   jenkins/      Local Jenkins running a real pipeline against task-api's JUnit suite
   jfrog-artifactory/  Local Artifactory OSS + Postgres, publishes+verifies task-api's real jar
@@ -148,11 +149,25 @@ watch/exercise it from the sidelines?
   so this one isn't a Docker-provider-workaround candidate the way OpenSearch/RDS were — there's
   nothing genuine underneath to fall back to on Floci's side. Skipped rather than built as a
   misleading "works" sample.
-- **Floci's container lifecycle is machine-wide, not per-sample.** A separate pair of scripts
-  (`~/floci-sandbox/start.sh` / `stop.sh` — adjust the path in `deploy.sh` if you're setting
-  this up elsewhere) manage the actual Colima + Floci container and its persisted emulator
-  state, shared across every project on the machine that uses Floci. `deploy.sh` calls
-  `start.sh` automatically if Floci isn't already running.
+- **Floci's container lifecycle is machine-wide, not per-sample, but the scripts are bundled in
+  this repo.** `floci/start.sh` / `stop.sh` (repo root) manage the actual Colima + Floci
+  container; every Floci-based sample's `deploy.sh` calls `../../floci/start.sh` (relative to
+  the sample directory) automatically if Floci isn't already running. Persisted emulator state
+  still lives at `~/floci-sandbox/data`, a machine-level location outside any one repo's
+  checkout, since that state is genuinely shared across every project on the machine that uses
+  Floci — only the *scripts* needed bundling, not the state directory itself. (These used to
+  live only at `~/floci-sandbox/start.sh`, hand-authored per-machine with no copy in the repo at
+  all — a real gap for anyone cloning this repo fresh, since nothing told a new machine what to
+  put there. Bundled and fixed 2026-07-16.)
+- **`floci status`'s exit code is always 0, even when the container is stopped and unreachable**
+  — confirmed directly, not assumed. Every sample's `deploy.sh` used to check
+  `if ! floci status >/dev/null 2>&1`, which therefore *never* detected a stopped Floci and never
+  triggered the auto-start — silently skipped, with Pulumi then failing downstream with a
+  confusing `unable to validate AWS credentials` error that looked like a credentials problem,
+  not a "Floci was never started" one. Fixed by checking the `reachable` field from
+  `floci status -o json` instead, the only field that actually reflects real state. This had
+  been broken since the check was first written; it only went unnoticed because Floci happened
+  to already be running across most of this repo's development.
 - **Kinesis works against Floci, but `PutRecords` has a real per-record cost, not per-call.**
   Stream creation itself is fine (~20-24s, same as any other Pulumi resource here) and both
   `PutRecords`/`GetRecords` function correctly — no OpenSearch/RDS-style hang. But a single
@@ -353,8 +368,33 @@ model locally). If/when such a sample gets built, the convention to follow:
 
 ## Prerequisites
 
-JDK 21, Maven, Pulumi CLI, Docker (Colima, Docker Desktop, whatever — samples assume Colima on
-macOS specifically for the Floci-lifecycle scripts). [Floci CLI](https://floci.io) needed for
-the AWS-shaped samples (see Layout above). Node ([volta](https://volta.sh) or nvm), Python 3, and
-the [Clojure CLI](https://clojure.org/guides/install_clojure) are needed only for their one
+JDK 21, Maven, Pulumi CLI, Docker. [Floci CLI](https://floci.io) needed for the AWS-shaped
+samples (see Layout above). Node ([volta](https://volta.sh) or nvm), Python 3, and the
+[Clojure CLI](https://clojure.org/guides/install_clojure) are needed only for their one
 respective sample each (`node-api`, `python-api`, `clojure-datomic-api`).
+
+**macOS is the only platform this repo has actually been built and run on.** Every `deploy.sh`
+uses a bash shebang and Unix-y assumptions throughout (no PowerShell/cmd equivalents exist) —
+**Windows needs WSL2** to run any of this at all; there's no native-Windows path, and Colima
+itself doesn't support Windows regardless (it's a macOS/Linux tool). Everything here should work
+unmodified inside WSL2 or on native Linux (same bash, same Docker daemon, same JDK/Maven/Pulumi
+CLI story) — just not verified hands-on in this repo, so treat that combination as "should work,
+not confirmed" rather than "tested."
+
+**Docker runtime: this repo's `floci/start.sh` bundles Colima specifically** (the assumed default
+on macOS), but nothing in the samples themselves is Colima-specific — every `deploy.sh` and
+Pulumi program just talks to whatever Docker daemon is on the standard socket. **Rancher Desktop
+and Podman Desktop are plausible alternatives** (both can expose a Docker-compatible socket) but
+**neither has been verified against this repo** — no machine with either installed was available
+to confirm hands-on, so don't present that flexibility as tested. Swapping in one of them would
+mean writing an equivalent `floci/start.sh` for that tool's own start/status commands (Colima's
+`colima start`/`colima status` and the macOS-specific `docker.sock` symlink step are the only
+parts that would need replacing) — everything downstream of "a Docker daemon exists at the
+standard socket" should be unaffected.
+
+**Real AWS vs. Floci: Floci is the tested, recommended default for everyone**, not just a
+convenience for this repo's own author — every sample here runs against it with zero cost and
+nothing to clean up beyond `./destroy.sh`. A real AWS account is a legitimate, flexible
+alternative for someone who'd rather point at their own account (e.g. to go further than Floci
+can, like Bedrock — see "Real AWS as an opt-in path" above), but that path is deliberately
+opt-in and not yet built for any sample; don't imply it's a flip-a-switch option today.
