@@ -41,7 +41,17 @@ public class AttachmentController {
             throw new IllegalArgumentException("Uploaded file is empty");
         }
         String contentType = file.getContentType() != null ? file.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE;
-        AttachmentDetail detail = service.upload(file.getOriginalFilename(), contentType, file.getBytes());
+        // getOriginalFilename()'s own Javadoc documents it can return null. Empirically, this
+        // exact stack (embedded Tomcat + Spring's standard servlet-based multipart resolver)
+        // normalizes a part with no filename attribute to an empty string instead - confirmed by
+        // hand-crafting the raw multipart body, not assumed - so this null branch isn't proven
+        // reachable via HTTP here specifically. Guarding it anyway: it's the same one-line
+        // defensive pattern the line above already applies to contentType, a real part of the
+        // MultipartFile contract, and free of downside - S3AttachmentRepository's
+        // Map.of(FILENAME_METADATA_KEY, filename) would NPE on an actual null, not degrade
+        // gracefully, if some other multipart implementation ever did produce one.
+        String filename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "attachment";
+        AttachmentDetail detail = service.upload(filename, contentType, file.getBytes());
         return ResponseEntity.status(HttpStatus.CREATED).body(detail);
     }
 

@@ -239,7 +239,7 @@ watch/exercise it from the sidelines?
   metrics ever arrived" pointed at config rather than network. Worth checking for in any
   Micrometer-registry config that looks copied from an older tutorial.
 
-**Java/Hibernate:**
+**Polyglot samples (python-api, node-api, clojure-datomic-api):**
 - **Floci genuinely runs non-Java Lambda runtimes, not just Java.** Confirmed with python-api
   (Python 3.12): the same Java/Pulumi infra shape as hello-api, pointed at a Python handler
   instead, deploys cleanly and returns a real response computed by an actual Python interpreter
@@ -368,10 +368,20 @@ model locally). If/when such a sample gets built, the convention to follow:
 
 ## Prerequisites
 
-JDK 21, Maven, Pulumi CLI, Docker. [Floci CLI](https://floci.io) needed for the AWS-shaped
-samples (see Layout above). Node ([volta](https://volta.sh) or nvm), Python 3, and the
+JDK 21, Maven, Pulumi CLI, Docker, **Python 3**. [Floci CLI](https://floci.io) needed for the
+AWS-shaped samples (see Layout above). Node ([volta](https://volta.sh) or nvm) and the
 [Clojure CLI](https://clojure.org/guides/install_clojure) are needed only for their one
-respective sample each (`node-api`, `python-api`, `clojure-datomic-api`).
+respective sample each (`node-api`, `clojure-datomic-api`).
+
+**Python 3 is a de facto repo-wide dependency, not just `python-api`'s** — despite older docs
+here implying otherwise. Six other samples' `deploy.sh` (`attachments-api`, `claims-api`,
+`claims-intake-api`, `events-api`, `clojure-datomic-api`, `node-api`) use `python3 -c '...json...'`
+as a lightweight `jq` stand-in to pull an id/key back out of a curl JSON response for the demo
+output — confirmed directly via grep, not assumed. Ironically, `python-api`'s own `deploy.sh`
+doesn't invoke `python3` on the host at all (Floci runs the actual Python interpreter inside its
+own container; the host side just zips a source directory via Pulumi's `FileArchive`). Found
+during a final holistic review pass, 2026-07-16 — worth double-checking this claim again if any
+future sample's `deploy.sh` drops or adds a `python3` call.
 
 **macOS is the only platform this repo has actually been built and run on.** Every `deploy.sh`
 uses a bash shebang and Unix-y assumptions throughout (no PowerShell/cmd equivalents exist) —

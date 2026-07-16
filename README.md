@@ -110,9 +110,11 @@ Each sample's README has the specifics — what it deploys to, what to expect, w
   the samples themselves cares which Docker daemon it talks to
 - [Floci CLI](https://floci.io) — only needed for the AWS-shaped samples (`hello-api`,
   `catalog-api`, `events-api`, `claims-intake-api`, `python-api`, `attachments-api`)
-- Only needed for the polyglot samples, one each: Node ([volta](https://volta.sh) or nvm, for
-  `node-api`), Python 3 (`python-api` — used only to zip/package, any Lambda-compatible version
-  works locally), the [Clojure CLI](https://clojure.org/guides/install_clojure) (`clojure-datomic-api`)
+- **Python 3** — a de facto dependency across most samples, not just `python-api`: several other
+  `deploy.sh` scripts use it as a lightweight JSON-parsing helper for their demo output. Any
+  Lambda-compatible version works fine for `python-api` itself
+- Only needed for the two polyglot samples: Node ([volta](https://volta.sh) or nvm, for
+  `node-api`), the [Clojure CLI](https://clojure.org/guides/install_clojure) (`clojure-datomic-api`)
 
 **Platform honesty**: built and run on macOS only. Every script is bash — Windows needs WSL2,
 there's no native path, and Colima itself doesn't run on Windows regardless. Should work
