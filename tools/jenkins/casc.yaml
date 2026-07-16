@@ -23,7 +23,7 @@ jobs:
             scm {
               git {
                 remote { url('https://github.com/dbraddillon/polyglot-cloud-sandbox.git') }
-                branch('*/main')
+                branch('*/master')
               }
             }
             scriptPath('tools/jenkins/Jenkinsfile')
